@@ -4,6 +4,8 @@ import os
 from celery import Celery
 from kubernetes import client, config
 
+from .consumer import MyConsumerStep
+
 TTL_AFTER_FINISHED = 60
 
 logger = logging.getLogger(__name__)
@@ -22,15 +24,18 @@ app = Celery(
     "dispatcher", broker="pyamqp://guest@rabbitmq.dispatcher.svc.cluster.local//"
 )
 
+app.steps["consumer"].add(MyConsumerStep)
+
 
 @app.task
-def dispatch_job(job_name: str, image: str, args: list[str]) -> None:
+def dispatch_job(job_name: str, image: str, args: list[str], cmd: list[str] | None = None) -> None:
     api = client.BatchV1Api()
 
     container = client.V1Container(
         name="task",
         image=image,
         args=args,
+        command=cmd,
     )
 
     pod_spec = client.V1PodSpec(

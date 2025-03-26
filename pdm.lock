@@ -5,10 +5,10 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:ceaf0625d0caaa6056436816da5c5ae86ff7df46797f572037ef957409a248de"
+content_hash = "sha256:17d5995ee15703625f67bad65501ab65e853e8b038d0ded2f4b0396c94baa88e"
 
 [[metadata.targets]]
-requires_python = "==3.12.*"
+requires_python = "~=3.12"
 
 [[package]]
 name = "amqp"

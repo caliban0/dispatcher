@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatcher
+  namespace: dispatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dispatcher
+  template:
+    metadata:
+      labels:
+        app: dispatcher
+    spec:
+      serviceAccountName: dispatcher
+      containers:
+      - name: dispatcher
+        image: zalmarge/dispatcher:latest
+        imagePullPolicy: Always
+        env:
+        - name: K8S_IN_CLUSTER
+          value: "yes"
+        # - name: C_FORCE_ROOT
+        #   value: "true"

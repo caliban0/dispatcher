@@ -16,7 +16,7 @@ spec:
       serviceAccountName: dispatcher
       containers:
       - name: dispatcher
-        image: zalmarge/dispatcher:latest
+        image: coherence0507/dispatcher:latest
         imagePullPolicy: Always
         env:
         - name: K8S_IN_CLUSTER

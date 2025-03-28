@@ -1,14 +1,14 @@
 import argparse
 
-from dispatcher.tasks import dispatch_job
+#from dispatcher.tasks import dispatch_job
 from kombu import Connection
 
 # No RabbitMQ, just Kubernetes part
-dispatch_job(
-    job_name="curl-test",
-    image="curlimages/curl",
-    args=["-sSLfD-", "-I", "https://example.com"]
-)
+# dispatch_job(
+#     job_name="curl-test",
+#     image="curlimages/curl",
+#     args=["-sSLfD-", "-I", "https://example.com"]
+# )
 
 # Use RabbitMQ
 # dispatch_job.delay(

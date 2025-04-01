@@ -5,7 +5,7 @@ description = "Default template for PDM package"
 authors = [
     {name = "Marius Žalinauskas", email = "marius.zalinauskas@gmail.com"},
 ]
-dependencies = ["celery>=5.4.0", "kubernetes>=32.0.1"]
+dependencies = ["celery>=5.4.0", "kubernetes>=32.0.1", "gevent>=24.11.1"]
 requires-python = ">=3.12,<4.0.0"
 readme = "README.md"
 license = {text = "MIT"}
@@ -53,5 +53,5 @@ distribution = false
 [tool.pdm.scripts]
 test-dispatch.cmd = "python tests/test_dispatch.py"
 test-dispatch.env = {PYTHONPATH = "."}
-prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info"
+prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info --pool=gevent --concurrency=250"
 prod.env = {K8S_IN_CLUSTER = "yes"}

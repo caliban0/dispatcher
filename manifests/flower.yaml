@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flower-service
+  namespace: dispatcher
+spec:
+  ports:
+  - name: flower
+    port: 5555
+    targetPort: 5555
+  selector:
+    app: flower
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flower
+  namespace: dispatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flower
+  template:
+    metadata:
+      labels:
+        app: flower
+    spec:
+      containers:
+      - name: flower
+        image: mher/flower:2.0.1
+        ports:
+        - containerPort: 5555
+        command: ["celery", "--broker=pyamqp://guest@rabbitmq.dispatcher.svc.cluster.local//", "flower"]

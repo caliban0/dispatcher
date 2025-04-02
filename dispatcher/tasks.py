@@ -3,6 +3,7 @@ import os
 import re
 
 from celery import Celery
+from celery.utils.log import get_task_logger
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
@@ -12,7 +13,7 @@ from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 from dispatcher import constants
 from dispatcher.consumer import MyConsumerStep
 
-logger = logging.getLogger(__name__)
+logger = get_task_logger(__name__)
 
 logging.basicConfig(
     level=logging.INFO,

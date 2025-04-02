@@ -145,7 +145,7 @@ class JobDispatcher:
         return "\n".join(logs)
 
 
-@app.task
+@app.task(ignore_result=True)
 def dispatch_job(
     job_name: str, image: str, args: list[str], cmd: list[str] | None = None
 ) -> None:

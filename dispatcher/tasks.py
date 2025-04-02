@@ -98,7 +98,7 @@ class JobDispatcher:
         """Wait for job completion.
 
         This is done via *watches*, where we monitor the event stream, until the job
-        has a failed or successful pod.
+        has a failed or successful pod. Will NOT work for jobs with parallelization.
         """
         for event in self._watch.stream(
             self._batch_api_instance.list_namespaced_job,

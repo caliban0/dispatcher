@@ -3,14 +3,13 @@ import re
 
 from celery import Celery
 from celery.utils.log import get_task_logger
-from kombu import Connection, Exchange, Queue
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
 # Kubernetes stubs issues.
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
-from dispatcher import constants
+from dispatcher import constants, producer
 from dispatcher.consumer import MyConsumerStep
 from dispatcher.settings import settings
 
@@ -167,27 +166,14 @@ def dispatch_job(
         logs = job_dispatcher.get_job_pod_logs(job_name, constants.NAMESPACE)
         if not logs:
             logger.error(f"Job '{job_name}' pod logs empty")
+        else:
+            logger.info(f"Job '{job_name}' pod logs: {logs}")
+
+        producer.produce_response_msg(
+            producer.ResponseModel(
+                job_name=job_name, logs=logs, image=image, args=args, cmd=cmd
+            )
+        )
     except Exception as e:
         logger.exception(e)
         return
-
-    logger.info(f"Job '{job_name}' pod logs: {logs}")
-
-    log_exchange = Exchange("logs", "direct", durable=True)
-    log_queue = Queue("log", exchange=log_exchange, routing_key="kubernetes_job_log")
-
-    with Connection("pyamqp://guest@rabbitmq.dispatcher.svc.cluster.local//") as conn:
-        # Connection does have the Producer attribute, a celery type stub issue.
-        producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
-        producer.publish(
-            {
-                "job_name": job_name,
-                "image": image,
-                "args": args,
-                "cmd": cmd,
-                "logs": logs,
-            },
-            exchange=log_exchange,
-            routing_key="kubernetes_job_log",
-            declare=[log_queue],
-        )

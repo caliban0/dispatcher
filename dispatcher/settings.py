@@ -26,6 +26,10 @@ class Settings(BaseSettings):
         task_exchange_name: The exchange for the consumer boot-step.
         task_exchange_type: The exchange type for the consumer boot-step.
         task_routing_key: The routing key for the consumer boot-step.
+        response_queue_name: The queue for task response logs.
+        response_exchange_name: The exchange for the task response logs.
+        response_exchange_type: The exchange type for the task response logs.
+        response_routing_key: The routing key for the task response logs.
         k8s_in_cluster: Whether the application is in a Kubernetes cluster.
          Accepted values are "true" or "false".
 
@@ -41,6 +45,10 @@ class Settings(BaseSettings):
     task_exchange_name: str = "tasks"
     task_exchange_type: str = "direct"
     task_routing_key: str = "task"
+    response_queue_name: str = "responses"
+    response_exchange_name: str = "responses"
+    response_exchange_type: str = "direct"
+    response_routing_key: str = "response"
     k8s_in_cluster: Literal["true", "false"] = "true"
 
 

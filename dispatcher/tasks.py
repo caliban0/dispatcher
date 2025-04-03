@@ -25,11 +25,9 @@ if settings.k8s_in_cluster == "true":
     # Kubernetes stubs issues, both should be exported.
     k8s_config.load_incluster_config()  # type: ignore[attr-defined]
 else:
-    k8s_config.load_kube_config() # type: ignore[attr-defined]
+    k8s_config.load_kube_config()  # type: ignore[attr-defined]
 
-app = Celery(
-    constants.APP_NAME, broker=str(settings.broker_url)
-)
+app = Celery(constants.APP_NAME, broker=str(settings.broker_url))
 
 app.steps["consumer"].add(MyConsumerStep)
 
@@ -120,12 +118,8 @@ class JobDispatcher:
 
         return False
 
-    def get_job_pod_logs(self, job_name: str, namespace: str) -> str:
-        """Get logs of all the pods created by a job.
-
-        Returns:
-            The logs, separated by newlines.
-        """
+    def get_job_pod_logs(self, job_name: str, namespace: str) -> list[str]:
+        """Get logs of all the pods created by a job."""
         pods = self._core_api_instance.list_namespaced_pod(
             namespace=namespace, label_selector=f"job-name={job_name}"
         )
@@ -143,7 +137,7 @@ class JobDispatcher:
             log = self._core_api_instance.read_namespaced_pod_log(pod_name, namespace)
             logs.append(log)
 
-        return "\n".join(logs)
+        return logs
 
 
 @app.task(ignore_result=True)

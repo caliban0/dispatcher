@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 
 from celery import Celery
@@ -12,6 +11,7 @@ from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
 from dispatcher import constants
 from dispatcher.consumer import MyConsumerStep
+from dispatcher.settings import settings
 
 logger = get_task_logger(__name__)
 
@@ -20,14 +20,14 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-if os.getenv("K8S_IN_CLUSTER"):
+if settings.k8s_in_cluster == "true":
     # Kubernetes stubs issues, both should be exported.
     k8s_config.load_incluster_config()  # type: ignore[attr-defined]
 else:
     k8s_config.load_kube_config() # type: ignore[attr-defined]
 
 app = Celery(
-    "dispatcher", broker="pyamqp://guest@rabbitmq.dispatcher.svc.cluster.local//"
+    constants.APP_NAME, broker=str(settings.broker_url)
 )
 
 app.steps["consumer"].add(MyConsumerStep)

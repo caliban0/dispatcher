@@ -6,12 +6,12 @@ from typing import Any
 from celery import bootsteps
 from kombu import Consumer, Exchange, Queue
 
+from dispatcher.settings import settings
+
 _queue = Queue(
-    "",
-    # Exchange(os.environ.get("EXCHANGE_NAME"), type="direct"),
-    Exchange("my_exchange", type="direct"),
-    # os.environ.get("ROUTING_KEY"),
-    "routing_key",
+    settings.task_queue_name,
+    Exchange(settings.task_exchange_name, type=settings.task_exchange_type),
+    settings.task_routing_key,
 )
 
 

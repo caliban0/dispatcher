@@ -20,6 +20,6 @@ spec:
         imagePullPolicy: Always
         env:
         - name: K8S_IN_CLUSTER
-          value: "yes"
+          value: "true"
         # - name: C_FORCE_ROOT
         #   value: "true"

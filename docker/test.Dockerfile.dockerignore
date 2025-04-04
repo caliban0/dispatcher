@@ -1,0 +1,7 @@
+/*
+!/pyproject.toml
+!/pdm.lock
+!/dispatcher/
+/dispatcher/__pycache__
+!/tests/
+!/manifests/

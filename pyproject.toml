@@ -3,12 +3,12 @@ name = "dispatcher"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
-    {name = "Marius Žalinauskas", email = "marius.zalinauskas@gmail.com"},
+    { name = "Marius Žalinauskas", email = "marius.zalinauskas@gmail.com" },
 ]
 dependencies = ["celery>=5.4.0", "kubernetes>=32.0.1", "gevent>=24.11.1", "pydantic>=2.11.1", "pydantic-settings>=2.8.1"]
 requires-python = ">=3.12,<4.0.0"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [project.scripts]
 dispatcher = "dispatcher.main:main"
@@ -52,6 +52,29 @@ distribution = false
 
 [tool.pdm.scripts]
 test-dispatch.cmd = "python tests/test_dispatch.py"
-test-dispatch.env = {PYTHONPATH = "."}
+test-dispatch.env = { PYTHONPATH = "." }
+#test-create-cluster = "kind create cluster --name dispatcher-test"
+#test-build-image-worker = "docker build -f Dockerfile -t dispatcher:test-worker ."
+#test-build-image-runner = "docker build -f docker/test.Dockerfile -t dispatcher:test-runner ."
+#test-build-images.composite = ["test-build-image-worker", "test-build-image-runner"]
+#test-load-image-worker = "kind load docker-image dispatcher:test-worker"
+#test-load-image-runner = "kind load docker-image dispatcher:test-runner"
+#test-load-images.composite = ["test-load-image-worker", "test-load-image-runner"]
+#test-setup.composite = ["test-create-cluster", "test-build-images", "test-load-images"]
+#test-teardown = "kind delete cluster --name dispatcher-test"
+#test.cmd = "pytest tests/ -v"
+#test.env = { PYTHONPATH = "." }
+#test-in-cluster.composite = ["test-setup", "test-teardown"]
+#test-in-cluster.keep_going = true
+test-create-cluster = "kind create cluster --name dispatcher-test"
+test-build-image = "docker build -f docker/test.Dockerfile -t dispatcher:test ."
+test-load-image = "kind load docker-image dispatcher:test"
+test-setup.composite = ["test-create-cluster", "test-build-image", "test-load-image"]
+test-teardown = "kind delete cluster --name dispatcher-test"
+test-pytest.cmd = "pytest tests/integration -v"
+test-pytest.env = { PYTHONPATH = "." }
+test-get-logs = "kubectl --context=dispatcher-test --namespace=dispatcher logs "
+test.composite = ["test-setup", "test-teardown"]
+test.keep_going = true
 prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info --pool=gevent --concurrency=250"
-prod.env = {K8S_IN_CLUSTER = "true"}
+prod.env = { K8S_IN_CLUSTER = "true" }

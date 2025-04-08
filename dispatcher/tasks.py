@@ -48,7 +48,7 @@ class JobDispatcher:
         self._watch = watch
 
     def build_job(
-        self, image: str, name: str, args: list[str], cmd: list[str] | None = None
+        self, image: str, name: str, args: list[str] | None = None, cmd: list[str] | None = None
     ) -> k8s_client.V1Job:
         """Build the job object.
 
@@ -141,7 +141,7 @@ class JobDispatcher:
 
 @app.task(ignore_result=True)
 def dispatch_job(
-    job_name: str, image: str, args: list[str], cmd: list[str] | None = None
+    job_name: str, image: str, args: list[str] | None = None, cmd: list[str] | None = None
 ) -> None:
     batch_api = k8s_client.BatchV1Api()
     core_api = k8s_client.CoreV1Api()

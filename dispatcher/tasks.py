@@ -13,12 +13,13 @@ from dispatcher import constants, producer
 from dispatcher.consumer import ConsumerStep
 from dispatcher.settings import settings
 
-logger = get_task_logger(__name__)
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+
+logger = get_task_logger(__name__)
 
 if settings.k8s_in_cluster == "true":
     # Kubernetes stubs issues, both should be exported.
@@ -48,7 +49,11 @@ class JobDispatcher:
         self._watch = watch
 
     def build_job(
-        self, image: str, name: str, args: list[str] | None = None, cmd: list[str] | None = None
+        self,
+        image: str,
+        name: str,
+        args: list[str] | None = None,
+        cmd: list[str] | None = None,
     ) -> k8s_client.V1Job:
         """Build the job object.
 
@@ -141,7 +146,10 @@ class JobDispatcher:
 
 @app.task(ignore_result=True)
 def dispatch_job(
-    job_name: str, image: str, args: list[str] | None = None, cmd: list[str] | None = None
+    job_name: str,
+    image: str,
+    args: list[str] | None = None,
+    cmd: list[str] | None = None,
 ) -> None:
     batch_api = k8s_client.BatchV1Api()
     core_api = k8s_client.CoreV1Api()

@@ -54,7 +54,6 @@ convention = "google"
 distribution = false
 
 [tool.pdm.scripts]
-test-dispatch.cmd = "python tests/test_dispatch.py"
-test-dispatch.env = {PYTHONPATH = "."}
+test-unit.cmd = "pytest tests/unit"
 prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info --pool=gevent --concurrency=250"
 prod.env = {K8S_IN_CLUSTER = "true"}

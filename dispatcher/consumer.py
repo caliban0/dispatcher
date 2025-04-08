@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from celery import bootsteps
@@ -23,7 +22,7 @@ class TaskArgModel(BaseModel):
     cmd: list[str] | None
 
 
-class MyConsumerStep(bootsteps.ConsumerStep):
+class ConsumerStep(bootsteps.ConsumerStep):
     def get_consumers(self, channel: Any) -> list[Consumer]:
         return [
             Consumer(

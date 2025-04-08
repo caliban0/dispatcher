@@ -10,7 +10,7 @@ from kubernetes import config as k8s_config
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
 from dispatcher import constants, producer
-from dispatcher.consumer import MyConsumerStep
+from dispatcher.consumer import ConsumerStep
 from dispatcher.settings import settings
 
 logger = get_task_logger(__name__)
@@ -28,7 +28,7 @@ else:
 
 app = Celery(constants.APP_NAME, broker=str(settings.broker_url))
 
-app.steps["consumer"].add(MyConsumerStep)
+app.steps["consumer"].add(ConsumerStep)
 
 
 def _is_valid_dns_label(label: str) -> bool:

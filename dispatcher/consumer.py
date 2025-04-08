@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
 from celery import bootsteps
@@ -27,12 +26,10 @@ class MyConsumerStep(bootsteps.ConsumerStep):
         ]
 
     def handle_message(self, body: Any, message: Any) -> None:
-        job_id = uuid.uuid4()
-
         from .tasks import dispatch_job
 
         dispatch_job.delay(
-            body["job_name"] + "-" + str(job_id),
+            body["job_name"],
             body["image"],
             body.get("args"),
             body.get("cmd"),

@@ -6,7 +6,7 @@ authors = [
     {name = "Marius Žalinauskas", email = "marius.zalinauskas@gmail.com"},
 ]
 dependencies = ["celery>=5.4.0", "kubernetes>=32.0.1", "gevent>=24.11.1", "pydantic>=2.11.1", "pydantic-settings>=2.8.1"]
-requires-python = ">=3.12,<4.0.0"
+requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "MIT"}
 

@@ -54,6 +54,8 @@ convention = "google"
 distribution = false
 
 [tool.pdm.scripts]
+lint = "ruff check ."
+type-check = "mypy . --strict"
 test-unit.cmd = "pytest tests/unit"
 prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info --pool=gevent --concurrency=250"
 prod.env = {K8S_IN_CLUSTER = "true"}

@@ -1,21 +1,7 @@
 import argparse
 
-from dispatcher.tasks import dispatch_job
 from kombu import Connection
 
-# No RabbitMQ, just Kubernetes part
-dispatch_job(
-    job_name="curl-test",
-    image="curlimages/curl",
-    args=["-sSLfD-", "-I", "https://example.com"]
-)
-
-# Use RabbitMQ
-# dispatch_job.delay(
-#     job_name="curl-test",
-#     image="curlimages/curl",
-#     args=["-sSLfD-", "-I", "https://example.com"]
-# )
 
 def send_sleep_msg(count: int) -> None:
     for _ in range(count):
@@ -29,8 +15,8 @@ def send_sleep_msg(count: int) -> None:
                     "cmd": ["sh", "-c"],
                     "args": ['echo "Starting"; sleep 10; echo "Done"'],
                 },
-                exchange="my_exchange",
-                routing_key="routing_key",
+                exchange="tasks",
+                routing_key="tasks",
             )
 
 

@@ -80,6 +80,7 @@ def _inject_watch_stream(
     # Arrange mock for the event stream.
     def event_stream() -> Iterator[mock.MagicMock]:
         yield event_mock
+
     job_dispatcher._watch.stream.return_value = event_stream()
 
     return job_dispatcher
@@ -120,10 +121,10 @@ def test_get_job_pod_logs_returns_logs_when_k8s_success(
 
     job_dispatcher._core_api_instance.list_namespaced_pod.return_value = pod_list_mock
 
-    assert (
-        job_dispatcher.get_job_pod_logs("my_job", "my_namespace")
-        == "test_log\ntest_log"
-    )
+    assert job_dispatcher.get_job_pod_logs("my_job", "my_namespace") == [
+        "test_log",
+        "test_log",
+    ]
 
 
 valid_labels: list[str] = [

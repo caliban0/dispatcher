@@ -1,7 +1,9 @@
 import logging
 import re
+from typing import Any
 
 from celery import Celery
+from celery.signals import worker_init
 from celery.utils.log import get_task_logger
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
@@ -21,11 +23,13 @@ logging.basicConfig(
 
 logger = get_task_logger(__name__)
 
-if settings.k8s_in_cluster == "true":
-    # Kubernetes stubs issues, both should be exported.
-    k8s_config.load_incluster_config()  # type: ignore[attr-defined]
-else:
-    k8s_config.load_kube_config()  # type: ignore[attr-defined]
+@worker_init.connect
+def setup_k8s(**kwargs: Any) -> None:
+    if settings.k8s_in_cluster == "true":
+        # Kubernetes stubs issues, both should be exported.
+        k8s_config.load_incluster_config()  # type: ignore[attr-defined]
+    else:
+        k8s_config.load_kube_config()  # type: ignore[attr-defined]
 
 app = Celery(constants.APP_NAME, broker=str(settings.broker_url))
 

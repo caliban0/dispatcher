@@ -21,6 +21,11 @@ def job_dispatcher() -> tasks.JobDispatcher:
         create_autospec(k8s_watch.Watch, spec_set=True),
     )
 
+@pytest.fixture(autouse=True)
+def patch_k8s_config() -> None:
+    tasks.k8s_config.load_kube_config.__call__ = MagicMock() # type: ignore[attr-defined]
+    tasks.k8s_config.load_incluster_config.__call__ = MagicMock() # type: ignore[attr-defined]
+
 
 def test_build_job_returns_job_when_k8s_success(
     job_dispatcher: tasks.JobDispatcher,

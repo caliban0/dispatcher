@@ -1,22 +1,28 @@
 import argparse
+import json
+import uuid
 
 from kombu import Connection
+
+from dispatcher.settings import settings
 
 
 def send_sleep_msg(count: int) -> None:
     for _ in range(count):
-        with Connection("amqp://guest:guest@localhost//") as conn:
+        with Connection(str(settings.broker_url)) as conn:
             # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
             producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
-            producer.publish(
+            job_name = "sleep-" + str(uuid.uuid4())
+            producer.publish(json.dumps(
                 {
-                    "job_name": "sleep",
-                    "image": "alpine:3.21.3",
-                    "cmd": ["sh", "-c"],
-                    "args": ['echo "Starting"; sleep 10; echo "Done"'],
-                },
-                exchange="tasks",
-                routing_key="tasks",
+                    "id": job_name,
+                    "image": "alpine:latest",
+                    # "cmd": ["sh", "-c"],
+                    # "args": ['echo "Starting"; sleep 10; echo "Done"'],
+                    "cmd": ["ls"]
+                }),
+                exchange=settings.task_exchange_name,
+                routing_key=settings.task_routing_key,
             )
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from pydantic import AmqpDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,7 +22,12 @@ class Settings(BaseSettings):
     can be used to override the default values.
 
     Attributes:
-        broker_url: AMQP broker URL.
+        amqp_scheme: AMQP broker URL scheme.
+        amqp_user: AMQP broker URL username.
+        amqp_password: AMQP broker URL password.
+        amqp_host: AMQP broker URL host.
+        amqp_port: AMQP broker URL port.
+        amqp_vhost: AMQP broker vhost.
         task_queue_name: The queue for the consumer boot-step.
         task_exchange_name: The exchange for the consumer boot-step.
         task_exchange_type: The exchange type for the consumer boot-step.
@@ -38,9 +44,25 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_get_env_file_path(), env_file_encoding="utf-8", frozen=True
     )
-    broker_url: AmqpDsn = AmqpDsn(
-        "amqp://guest@rabbitmq.dispatcher.svc.cluster.local//"
-    )
+    amqp_scheme: str = "amqp"
+    amqp_user: str = "guest"
+    amqp_password: str = "guest"
+    amqp_host: str = "rabbitmq.dispatcher.svc.cluster.local"
+    amqp_port: int = 5672
+    amqp_vhost: str = "/"
+
+    @property
+    def broker_url(self) -> AmqpDsn:
+        """The fully built and encoded broker URL."""
+        return AmqpDsn.build(
+            scheme=self.amqp_scheme,
+            host=self.amqp_host,
+            port=self.amqp_port,
+            username=quote(self.amqp_user, safe="") if self.amqp_user else "",
+            password=quote(self.amqp_password, safe="") if self.amqp_password else "",
+            path=self.amqp_vhost,
+        )
+
     task_queue_name: str = "tasks"
     task_exchange_name: str = "tasks"
     task_exchange_type: str = "direct"

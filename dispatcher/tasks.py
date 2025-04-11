@@ -91,6 +91,7 @@ class JobDispatcher:
         job_spec = k8s_client.V1JobSpec(
             template=template,
             ttl_seconds_after_finished=constants.TTL_AFTER_FINISHED,
+            backoff_limit=0
         )
 
         return k8s_client.V1Job(

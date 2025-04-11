@@ -23,6 +23,7 @@ logging.basicConfig(
 
 logger = get_task_logger(__name__)
 
+
 @worker_init.connect
 def setup_k8s(**kwargs: Any) -> None:
     if settings.k8s_in_cluster == "true":
@@ -30,6 +31,7 @@ def setup_k8s(**kwargs: Any) -> None:
         k8s_config.load_incluster_config()  # type: ignore[attr-defined]
     else:
         k8s_config.load_kube_config()  # type: ignore[attr-defined]
+
 
 app = Celery(constants.APP_NAME, broker=str(settings.broker_url))
 
@@ -105,7 +107,8 @@ class JobDispatcher:
         """Wait for job completion.
 
         This is done via *watches*, where we monitor the event stream, until the job
-        has a failed or successful pod. Will NOT work for jobs with parallelization.
+        has a failed or successful pod. Will NOT work for jobs with parallelization
+        or jobs that restart pods.
         """
         for event in self._watch.stream(
             self._batch_api_instance.list_namespaced_job,
@@ -126,15 +129,33 @@ class JobDispatcher:
 
         return False
 
-    def get_job_pod_logs(self, job_name: str, namespace: str) -> list[str]:
-        """Get logs of all the pods created by a job."""
+    def get_pod_container_exit_code(self, pod: k8s_client.V1Pod) -> int:
+        if pod.status is not None and pod.status.container_statuses is not None:
+            for container_status in pod.status.container_statuses:
+                state = container_status.state
+
+                if state is not None and state.terminated is not None:
+                    return state.terminated.exit_code
+
+        raise ValueError(
+            f"Could not determine pod container exit code for pod: '{pod.to_dict()}'"
+        )
+
+    def get_job_result(self, job_name: str, namespace: str) -> tuple[str, int]:
+        """Get logs and exit code of the first pod created by the job.
+
+        The job MUST be in terminal state.
+        """
         pods = self._core_api_instance.list_namespaced_pod(
             namespace=namespace, label_selector=f"job-name={job_name}"
         )
 
         logs: list[str] = []
+        exit_codes: list[int] = []
 
         for pod in pods.items:
+            exit_codes.append(self.get_pod_container_exit_code(pod))
+
             # In practice, this can only happen if we try to read a pod when we shouldn't
             # e.g. during create or update. Otherwise, 'metadata' is a required field.
             pod_name = pod.metadata.name if pod.metadata is not None else None
@@ -145,7 +166,7 @@ class JobDispatcher:
             log = self._core_api_instance.read_namespaced_pod_log(pod_name, namespace)
             logs.append(log)
 
-        return logs
+        return logs[0], exit_codes[0]
 
 
 @app.task(ignore_result=True)
@@ -175,16 +196,14 @@ def dispatch_job(
         else:
             logger.error(f"Job '{job_name}' failed")
 
-        logs = job_dispatcher.get_job_pod_logs(job_name, constants.NAMESPACE)
+        logs, exit_code = job_dispatcher.get_job_result(job_name, constants.NAMESPACE)
         if not logs:
             logger.error(f"Job '{job_name}' pod logs empty")
         else:
             logger.info(f"Job '{job_name}' pod logs: {logs}")
 
         producer.produce_response_msg(
-            producer.ResponseModel(
-                job_name=job_name, logs=logs, image=image, args=args, cmd=cmd
-            )
+            producer.ResponseModel(id=job_name, output=logs, exit=exit_code)
         )
     except Exception as e:
         logger.exception(e)

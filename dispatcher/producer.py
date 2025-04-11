@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 from kombu import Connection, Exchange, Queue
 from pydantic import BaseModel
 
@@ -21,18 +19,14 @@ class ResponseModel(BaseModel):
     """Message response model.
 
     Attributes:
-        job_name: Job name. RFC 1035 DNS label compliant.
-        image: The image that was used for the job pod container.
-        args: Arguments passed to the job pod container. Corresponds to CMD in Docker.
-        cmd: Commands passed to the job pod container. Corresponds to ENTRYPOINT in Docker.
-        logs: Logs of job pods.
+        id: Task id. RFC 1035 DNS label compliant.
+        output: Logs of job pods.
+        exit: Container exit code.
     """
 
-    job_name: str
-    image: str
-    args: Sequence[str] | None
-    cmd: Sequence[str] | None
-    logs: list[str]
+    id: str
+    output: str
+    exit: int
 
 
 def produce_response_msg(resp: ResponseModel) -> None:

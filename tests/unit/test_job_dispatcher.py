@@ -21,11 +21,6 @@ def job_dispatcher() -> tasks.JobDispatcher:
         create_autospec(k8s_watch.Watch, spec_set=True),
     )
 
-@pytest.fixture(autouse=True)
-def patch_k8s_config() -> None:
-    tasks.k8s_config.load_kube_config.__call__ = MagicMock() # type: ignore[attr-defined]
-    tasks.k8s_config.load_incluster_config.__call__ = MagicMock() # type: ignore[attr-defined]
-
 
 def test_build_job_returns_job_when_k8s_success(
     job_dispatcher: tasks.JobDispatcher,
@@ -107,7 +102,7 @@ def test_wait_for_job_completion_returns_false_when_job_fails(
     assert job_dispatcher.wait_for_job_completion("my_job", "my_namespace") is False
 
 
-def test_get_job_pod_logs_returns_logs_when_k8s_success(
+def test_get_result_returns_logs_exit_code_when_k8s_success(
     job_dispatcher: tasks.JobDispatcher,
 ) -> None:
     # Arrange for log read to return log stub on expected params.
@@ -119,17 +114,17 @@ def test_get_job_pod_logs_returns_logs_when_k8s_success(
     )
 
     # Arrange the pod list mock.
+    container_status = MagicMock()
+    container_status.state.terminated.exit_code = 0
     pod_mock = create_autospec(k8s_client.V1Pod, spec_set=True)
     pod_mock.metadata.name = "test_pod"
+    pod_mock.status.container_statuses = [container_status]
     pod_list_mock = create_autospec(k8s_client.V1PodList, spec_set=True)
-    pod_list_mock.items = [pod_mock, pod_mock]
+    pod_list_mock.items = [pod_mock]
 
     job_dispatcher._core_api_instance.list_namespaced_pod.return_value = pod_list_mock
 
-    assert job_dispatcher.get_job_pod_logs("my_job", "my_namespace") == [
-        "test_log",
-        "test_log",
-    ]
+    assert job_dispatcher.get_job_result("my_job", "my_namespace") == ("test_log", 0)
 
 
 valid_labels: list[str] = [

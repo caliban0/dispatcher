@@ -11,6 +11,7 @@ from kubernetes import client as k8s_client
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
 from dispatcher import tasks
+from dispatcher.consumer import TaskArgModel
 
 
 @pytest.fixture
@@ -26,12 +27,14 @@ def test_build_job_returns_job_when_k8s_success(
     job_dispatcher: tasks.JobDispatcher,
 ) -> None:
     job = job_dispatcher.build_job(
-        image="alpine:3.21.3",
-        name="sleep-100d92ab-e9b4-4cd4-9fbf-4213c00bda84b",
-        args=['echo "Starting"; sleep 10; echo "Done"'],
-        working_dir="/opt",
-        credentials_mount_path="/root/",
-        cmd=["sh", "-c"],
+        TaskArgModel(
+            image="alpine:3.21.3",
+            id="sleep-100d92ab-e9b4-4cd4-9fbf-4213c00bda84b",
+            args=['echo "Starting"; sleep 10; echo "Done"'],
+            working_dir="/opt",
+            credentials_mount_path="/root/",
+            cmd=["sh", "-c"],
+        )
     )
 
     assert job is not None
@@ -58,11 +61,13 @@ def test_build_job_fails_when_job_name_not_dns_label(
 ) -> None:
     with pytest.raises(ValueError) as excinfo:
         job_dispatcher.build_job(
-            image="alpine:3.21.3",
-            name="-",
-            args=['echo "Starting"; sleep 10; echo "Done"'],
-            cmd=["sh", "-c"],
-            credentials_mount_path="/root/"
+            TaskArgModel(
+                image="alpine:3.21.3",
+                id="-",
+                args=['echo "Starting"; sleep 10; echo "Done"'],
+                cmd=["sh", "-c"],
+                credentials_mount_path="/root/",
+            )
         )
     assert str(excinfo.value) == "job name '-' is not a valid DNS label"
 

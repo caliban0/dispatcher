@@ -12,7 +12,7 @@ from kubernetes import config as k8s_config
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
 from dispatcher import constants, producer
-from dispatcher.consumer import ConsumerStep
+from dispatcher.consumer import ConsumerStep, TaskArgModel
 from dispatcher.settings import settings
 
 logging.basicConfig(
@@ -56,37 +56,29 @@ class JobDispatcher:
 
     def build_job(
         self,
-        image: str,
-        name: str,
-        credentials_mount_path: str,
-        working_dir: str | None = None,
-        args: list[str] | None = None,
-        cmd: list[str] | None = None,
+        args: TaskArgModel,
     ) -> k8s_client.V1Job:
         """Build the job object.
 
         Arguments:
-            image: Container image name.
-            working_dir: Container working directory.
-            name: Job name. Will also be the container name and is required to be a valid DNS label.
-            args: Arguments to the entrypoint.
-            cmd: Entrypoint list.
+            args: K8S parameters required for building the job.
         """
-        if not _is_valid_dns_label(name):
-            raise ValueError(f"job name '{name}' is not a valid DNS label")
+        # We're going to use the task ID as the job name.
+        if not _is_valid_dns_label(args.id):
+            raise ValueError(f"job name '{args.id}' is not a valid DNS label")
 
         volume_mount = k8s_client.V1VolumeMount(
             name=constants.CREDENTIALS_VOLUME_NAME,
-            mount_path=credentials_mount_path,
+            mount_path=args.credentials_mount_path,
             read_only=True,
         )
 
         container = k8s_client.V1Container(
-            name=name,
-            image=image,
-            args=args,
-            command=cmd,
-            working_dir=working_dir,
+            name=args.id,
+            image=args.image,
+            args=args.args,
+            command=args.cmd,
+            working_dir=args.working_dir,
             stdin=True,
             tty=True,
             volume_mounts=[volume_mount],
@@ -118,7 +110,7 @@ class JobDispatcher:
         return k8s_client.V1Job(
             api_version=constants.JOB_API_VERSION,
             kind="Job",
-            metadata=k8s_client.V1ObjectMeta(name=name),
+            metadata=k8s_client.V1ObjectMeta(name=args.id),
             spec=job_spec,
         )
 
@@ -191,45 +183,41 @@ class JobDispatcher:
         return logs[0], exit_codes[0]
 
 
-@app.task(ignore_result=True)
-def dispatch_job(
-    job_name: str,
-    image: str,
-    credentials_mount_path: str,
-    working_dir: str | None = None,
-    args: list[str] | None = None,
-    cmd: list[str] | None = None,
-) -> None:
+@app.task(ignore_result=True, pydantic=True)
+def dispatch_job(args: TaskArgModel) -> None:
+
+
+
     batch_api = k8s_client.BatchV1Api()
     core_api = k8s_client.CoreV1Api()
     watcher = k8s_watch.Watch()
 
     job_dispatcher = JobDispatcher(core_api, batch_api, watcher)
+
+    # Use ID as job name.
     try:
-        job = job_dispatcher.build_job(
-            image, job_name, credentials_mount_path, working_dir, args, cmd
-        )
-        logger.info(f"Built job: '{job_name}'")
+        job = job_dispatcher.build_job(args)
+        logger.info(f"Built job: '{args.id}'")
 
         job_dispatcher.run_job(job, constants.NAMESPACE)
-        logger.info(f"Running job: '{job_name}'")
+        logger.info(f"Running job: '{args.id}'")
 
         job_status = job_dispatcher.wait_for_job_completion(
-            job_name, constants.NAMESPACE
+            args.id, constants.NAMESPACE
         )
         if job_status:
-            logger.info(f"Job '{job_name}' completed successfully")
+            logger.info(f"Job '{args.id}' completed successfully")
         else:
-            logger.error(f"Job '{job_name}' failed")
+            logger.error(f"Job '{args.id}' failed")
 
-        logs, exit_code = job_dispatcher.get_job_result(job_name, constants.NAMESPACE)
+        logs, exit_code = job_dispatcher.get_job_result(args.id, constants.NAMESPACE)
         if not logs:
-            logger.error(f"Job '{job_name}' pod logs empty")
+            logger.error(f"Job '{args.id}' pod logs empty")
         else:
-            logger.info(f"Job '{job_name}' pod logs: {logs}")
+            logger.info(f"Job '{args.id}' pod logs: {logs}")
 
         producer.produce_response_msg(
-            producer.ResponseModel(id=job_name, output=logs, exit=exit_code)
+            producer.ResponseModel(id=args.id, output=logs, exit=exit_code)
         )
     except Exception as e:
         logger.exception(e)

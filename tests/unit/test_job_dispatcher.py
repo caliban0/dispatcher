@@ -30,6 +30,7 @@ def test_build_job_returns_job_when_k8s_success(
         name="sleep-100d92ab-e9b4-4cd4-9fbf-4213c00bda84b",
         args=['echo "Starting"; sleep 10; echo "Done"'],
         working_dir="/opt",
+        credentials_mount_path="/root/",
         cmd=["sh", "-c"],
     )
 
@@ -48,6 +49,8 @@ def test_build_job_returns_job_when_k8s_success(
     ]
     assert job.spec.template.spec.containers[0].command == ["sh", "-c"]
     assert job.spec.template.spec.containers[0].working_dir == "/opt"
+    assert job.spec.template.spec.containers[0].volume_mounts is not None
+    assert job.spec.template.spec.containers[0].volume_mounts[0].mount_path == "/root/"
 
 
 def test_build_job_fails_when_job_name_not_dns_label(
@@ -59,6 +62,7 @@ def test_build_job_fails_when_job_name_not_dns_label(
             name="-",
             args=['echo "Starting"; sleep 10; echo "Done"'],
             cmd=["sh", "-c"],
+            credentials_mount_path="/root/"
         )
     assert str(excinfo.value) == "job name '-' is not a valid DNS label"
 

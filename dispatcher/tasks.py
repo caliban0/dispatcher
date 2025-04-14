@@ -58,6 +58,7 @@ class JobDispatcher:
         self,
         image: str,
         name: str,
+        credentials_mount_path: str,
         working_dir: str | None = None,
         args: list[str] | None = None,
         cmd: list[str] | None = None,
@@ -74,6 +75,12 @@ class JobDispatcher:
         if not _is_valid_dns_label(name):
             raise ValueError(f"job name '{name}' is not a valid DNS label")
 
+        volume_mount = k8s_client.V1VolumeMount(
+            name=constants.CREDENTIALS_VOLUME_NAME,
+            mount_path=credentials_mount_path,
+            read_only=True,
+        )
+
         container = k8s_client.V1Container(
             name=name,
             image=image,
@@ -82,10 +89,19 @@ class JobDispatcher:
             working_dir=working_dir,
             stdin=True,
             tty=True,
+            volume_mounts=[volume_mount],
         )
 
         pod_spec = k8s_client.V1PodSpec(
             containers=[container],
+            volumes=[
+                k8s_client.V1Volume(
+                    name=constants.CREDENTIALS_VOLUME_NAME,
+                    secret=k8s_client.V1SecretVolumeSource(
+                        secret_name=constants.CREDENTIALS_SECRET_NAME
+                    ),
+                )
+            ],
             restart_policy=constants.POD_RESTART_POLICY,
         )
 
@@ -96,7 +112,7 @@ class JobDispatcher:
         job_spec = k8s_client.V1JobSpec(
             template=template,
             ttl_seconds_after_finished=constants.TTL_AFTER_FINISHED,
-            backoff_limit=0
+            backoff_limit=0,
         )
 
         return k8s_client.V1Job(
@@ -179,6 +195,7 @@ class JobDispatcher:
 def dispatch_job(
     job_name: str,
     image: str,
+    credentials_mount_path: str,
     working_dir: str | None = None,
     args: list[str] | None = None,
     cmd: list[str] | None = None,
@@ -189,7 +206,9 @@ def dispatch_job(
 
     job_dispatcher = JobDispatcher(core_api, batch_api, watcher)
     try:
-        job = job_dispatcher.build_job(image, job_name, working_dir, args, cmd)
+        job = job_dispatcher.build_job(
+            image, job_name, credentials_mount_path, working_dir, args, cmd
+        )
         logger.info(f"Built job: '{job_name}'")
 
         job_dispatcher.run_job(job, constants.NAMESPACE)

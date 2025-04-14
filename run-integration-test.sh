@@ -50,6 +50,8 @@ kind load docker-image dispatcher:test --name "${CLUSTER_NAME}"
 
 kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/namespace.yaml
 kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/rbac.yaml
+kubectl -n dispatcher create secret generic credentials-secret --from-literal=username.txt=hello
+
 if [ "$DEPLOY_RABBIT" = "true" ]; then
     kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/rabbitmq.yaml
     sleep 10

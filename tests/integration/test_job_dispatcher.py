@@ -32,7 +32,7 @@ def test_happy_path(consumer_broker_url: str) -> None:
     def process_return(body: Any, message: Any) -> None:
         message.ack()
         assert ResponseModel.model_validate_json(body) == ResponseModel.model_validate(
-            {"id": job_name, "output": "/opt\n", "exit": 0}
+            {"id": job_name, "output": "hello", "exit": 0}
         )
 
     with Connection(consumer_broker_url) as conn:
@@ -43,8 +43,9 @@ def test_happy_path(consumer_broker_url: str) -> None:
                 {
                     "id": job_name,
                     "image": "alpine:3.21.3",
-                    "cmd": ["pwd"],
-                    "working_dir": "/opt",
+                    "cmd": ["cat", "username.txt"],
+                    "working_dir": "/root",
+                    "credentials_mount_path": "/root/"
                 }
             ),
             exchange=_task_exchange,
@@ -78,6 +79,7 @@ def test_sad_path(consumer_broker_url: str) -> None:
                 {
                     "id": job_name,
                     "image": "alpine:3.21.3",
+                    "credentials_mount_path": "/root/",
                     "cmd": ["sh", "-c", "sleeeeep 1"],
                 }
             ),

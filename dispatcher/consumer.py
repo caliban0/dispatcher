@@ -41,7 +41,7 @@ class ConsumerStep(bootsteps.ConsumerStep):
             args = TaskArgModel.model_validate_json(body)
         except ValidationError as e:
             logging.error(e.errors())
-            message.ack()
+            message.reject()
             return
 
         dispatch_job.delay(

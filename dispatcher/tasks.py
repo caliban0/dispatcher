@@ -80,6 +80,8 @@ class JobDispatcher:
             args=args,
             command=cmd,
             working_dir=working_dir,
+            stdin=True,
+            tty=True,
         )
 
         pod_spec = k8s_client.V1PodSpec(

@@ -29,6 +29,7 @@ def test_build_job_returns_job_when_k8s_success(
         image="alpine:3.21.3",
         name="sleep-100d92ab-e9b4-4cd4-9fbf-4213c00bda84b",
         args=['echo "Starting"; sleep 10; echo "Done"'],
+        working_dir="/opt",
         cmd=["sh", "-c"],
     )
 
@@ -46,6 +47,7 @@ def test_build_job_returns_job_when_k8s_success(
         'echo "Starting"; sleep 10; echo "Done"'
     ]
     assert job.spec.template.spec.containers[0].command == ["sh", "-c"]
+    assert job.spec.template.spec.containers[0].working_dir == "/opt"
 
 
 def test_build_job_fails_when_job_name_not_dns_label(

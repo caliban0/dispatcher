@@ -29,8 +29,8 @@ def test_happy_path(consumer_broker_url: str) -> None:
     job_name = "sleep-" + str(uuid.uuid4())
 
     def process_return(body: Any, message: Any) -> None:
-        assert body == {"id": job_name, "output": "Starting\nDone\n", "exit": 0}
         message.ack()
+        assert body == {"id": job_name, "output": "/opt\n", "exit": 0}
 
     with Connection(consumer_broker_url) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
@@ -40,7 +40,8 @@ def test_happy_path(consumer_broker_url: str) -> None:
                 {
                     "id": job_name,
                     "image": "alpine:3.21.3",
-                    "cmd": ["sh", "-c", 'echo "Starting"; sleep 1; echo "Done"'],
+                    "cmd": ["pwd"],
+                    "working_dir": "/opt"
                 }
             ),
             exchange=_task_exchange,
@@ -57,12 +58,12 @@ def test_sad_path(consumer_broker_url: str) -> None:
     job_name = "sleep-" + str(uuid.uuid4())
 
     def process_return(body: Any, message: Any) -> None:
+        message.ack()
         assert body == {
             "id": job_name,
             "output": "sh: sleeeeep: not found\n",
             "exit": 127,
         }
-        message.ack()
 
     with Connection(consumer_broker_url) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.

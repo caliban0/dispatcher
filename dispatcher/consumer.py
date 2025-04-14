@@ -18,6 +18,7 @@ _queue = Queue(
 class TaskArgModel(BaseModel):
     id: str
     image: str
+    working_dir: str | None = None
     args: list[str] | None = None
     cmd: list[str] | None = None
 
@@ -47,6 +48,7 @@ class ConsumerStep(bootsteps.ConsumerStep):
         dispatch_job.delay(
             args.id,
             args.image,
+            args.working_dir,
             args.args,
             args.cmd,
         )

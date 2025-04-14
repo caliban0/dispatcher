@@ -58,6 +58,7 @@ class JobDispatcher:
         self,
         image: str,
         name: str,
+        working_dir: str | None = None,
         args: list[str] | None = None,
         cmd: list[str] | None = None,
     ) -> k8s_client.V1Job:
@@ -65,6 +66,7 @@ class JobDispatcher:
 
         Arguments:
             image: Container image name.
+            working_dir: Container working directory.
             name: Job name. Will also be the container name and is required to be a valid DNS label.
             args: Arguments to the entrypoint.
             cmd: Entrypoint list.
@@ -77,6 +79,7 @@ class JobDispatcher:
             image=image,
             args=args,
             command=cmd,
+            working_dir=working_dir,
         )
 
         pod_spec = k8s_client.V1PodSpec(
@@ -174,6 +177,7 @@ class JobDispatcher:
 def dispatch_job(
     job_name: str,
     image: str,
+    working_dir: str | None = None,
     args: list[str] | None = None,
     cmd: list[str] | None = None,
 ) -> None:
@@ -183,7 +187,7 @@ def dispatch_job(
 
     job_dispatcher = JobDispatcher(core_api, batch_api, watcher)
     try:
-        job = job_dispatcher.build_job(image, job_name, args, cmd)
+        job = job_dispatcher.build_job(image, job_name, working_dir, args, cmd)
         logger.info(f"Built job: '{job_name}'")
 
         job_dispatcher.run_job(job, constants.NAMESPACE)

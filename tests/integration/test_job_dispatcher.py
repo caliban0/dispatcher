@@ -6,6 +6,7 @@ from typing import Any
 
 from kombu import Connection, Exchange, Queue
 
+from dispatcher.producer import ResponseModel
 from dispatcher.settings import settings
 
 _task_exchange = Exchange(settings.task_exchange_name, settings.task_exchange_type)
@@ -30,7 +31,9 @@ def test_happy_path(consumer_broker_url: str) -> None:
 
     def process_return(body: Any, message: Any) -> None:
         message.ack()
-        assert body == {"id": job_name, "output": "/opt\n", "exit": 0}
+        assert ResponseModel.model_validate_json(body) == ResponseModel.model_validate(
+            {"id": job_name, "output": "/opt\n", "exit": 0}
+        )
 
     with Connection(consumer_broker_url) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
@@ -41,7 +44,7 @@ def test_happy_path(consumer_broker_url: str) -> None:
                     "id": job_name,
                     "image": "alpine:3.21.3",
                     "cmd": ["pwd"],
-                    "working_dir": "/opt"
+                    "working_dir": "/opt",
                 }
             ),
             exchange=_task_exchange,
@@ -59,11 +62,13 @@ def test_sad_path(consumer_broker_url: str) -> None:
 
     def process_return(body: Any, message: Any) -> None:
         message.ack()
-        assert body == {
-            "id": job_name,
-            "output": "sh: sleeeeep: not found\n",
-            "exit": 127,
-        }
+        assert ResponseModel.model_validate_json(body) == ResponseModel.model_validate(
+            {
+                "id": job_name,
+                "output": "sh: sleeeeep: not found\n",
+                "exit": 127,
+            }
+        )
 
     with Connection(consumer_broker_url) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.

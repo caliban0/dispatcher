@@ -34,7 +34,7 @@ def produce_response_msg(resp: ResponseModel) -> None:
         # Connection does have the Producer attribute, a celery type stub issue.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
         producer.publish(
-            resp.model_dump(),
+            resp.model_dump_json(),
             exchange=_response_exchange,
             routing_key=settings.response_routing_key,
             declare=[_response_queue],

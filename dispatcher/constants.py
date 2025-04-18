@@ -9,3 +9,4 @@ WATCH_CLIENT_TIMEOUT = 60
 NAMESPACE = "dispatcher"
 CREDENTIALS_VOLUME_NAME = "credentials-volume"
 CREDENTIALS_SECRET_NAME = "credentials-secret"
+MAX_POD_LOG_SIZE = 4_096

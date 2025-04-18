@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from celery import bootsteps
@@ -51,7 +50,7 @@ class ConsumerStep(bootsteps.ConsumerStep):
         # To avoid circular import.
         from .tasks import dispatch_job
 
-        # Kind of clunky, since 'delay' only accepts JSON
-        # serializable objects, we have to dump into a dict pre-call.
-        dispatch_job.delay(json.loads(body))
         message.ack()
+
+        dispatch_job.delay(body)
+

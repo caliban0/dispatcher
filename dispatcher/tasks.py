@@ -1,5 +1,8 @@
+import functools
+import json
 import logging
 import re
+from collections.abc import Callable
 from typing import Any
 
 from celery import Celery
@@ -10,6 +13,7 @@ from kubernetes import config as k8s_config
 
 # Kubernetes stubs issues.
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
+from pydantic import ValidationError
 
 from dispatcher import constants, producer
 from dispatcher.consumer import ConsumerStep, TaskArgModel
@@ -43,6 +47,26 @@ def _is_valid_dns_label(label: str) -> bool:
     return bool(p.fullmatch(label))
 
 
+class KubernetesError(Exception):
+    pass
+
+
+def kubernetes_action[T, **P](name: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        @functools.wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                raise KubernetesError(
+                    f"Kubernetes action '{name}' failed: {e.__class__.__name__}, {e}"
+                ) from e
+
+        return wrapper
+
+    return decorator
+
+
 class JobDispatcher:
     def __init__(
         self,
@@ -54,6 +78,7 @@ class JobDispatcher:
         self._batch_api_instance = batch_api_instance
         self._watch = watch
 
+    @kubernetes_action(name="build job")
     def build_job(
         self,
         args: TaskArgModel,
@@ -114,9 +139,11 @@ class JobDispatcher:
             spec=job_spec,
         )
 
+    @kubernetes_action(name="run job")
     def run_job(self, job: k8s_client.V1Job, namespace: str) -> None:
         self._batch_api_instance.create_namespaced_job(namespace=namespace, body=job)
 
+    @kubernetes_action(name="wait for job completion")
     def wait_for_job_completion(self, job_name: str, namespace: str) -> bool:
         """Wait for job completion.
 
@@ -124,24 +151,35 @@ class JobDispatcher:
         has a failed or successful pod. Will NOT work for jobs with parallelization
         or jobs that restart pods.
         """
-        for event in self._watch.stream(
-            self._batch_api_instance.list_namespaced_job,
-            namespace=namespace,
-            field_selector=f"metadata.name={job_name}",
-            timeout_seconds=constants.WATCH_SERVER_TIMEOUT,
-            _request_timeout=constants.WATCH_CLIENT_TIMEOUT,
-        ):
-            job_obj = event["object"]
+        success: bool | None = None
 
-            if job_obj.status.succeeded is not None and job_obj.status.succeeded > 0:
-                self._watch.stop()
-                return True
+        try:
+            for event in self._watch.stream(
+                self._batch_api_instance.list_namespaced_job,
+                namespace=namespace,
+                field_selector=f"metadata.name={job_name}",
+                timeout_seconds=constants.WATCH_SERVER_TIMEOUT,
+                _request_timeout=constants.WATCH_CLIENT_TIMEOUT,
+            ):
+                job_obj = event["object"]
 
-            if job_obj.status.failed is not None and job_obj.status.failed > 0:
-                self._watch.stop()
-                return False
+                if (
+                    job_obj.status.succeeded is not None
+                    and job_obj.status.succeeded > 0
+                ):
+                    success = True
+                    break
 
-        return False
+                if job_obj.status.failed is not None and job_obj.status.failed > 0:
+                    success = False
+                    break
+        finally:
+            self._watch.stop()
+
+        self._watch.stop()
+        if success is not None:
+            return success
+        raise KubernetesError(f"Couldn't wait for job {job_name} completion")
 
     def get_pod_container_exit_code(self, pod: k8s_client.V1Pod) -> int:
         if pod.status is not None and pod.status.container_statuses is not None:
@@ -155,6 +193,7 @@ class JobDispatcher:
             f"Could not determine pod container exit code for pod: '{pod.to_dict()}'"
         )
 
+    @kubernetes_action(name="get job result")
     def get_job_result(self, job_name: str, namespace: str) -> tuple[str, int]:
         """Get logs and exit code of the first pod created by the job.
 
@@ -183,10 +222,42 @@ class JobDispatcher:
         return logs[0], exit_codes[0]
 
 
-@app.task(ignore_result=True, pydantic=True)
-def dispatch_job(args: TaskArgModel) -> None:
+def log_job_result(job_name: str, exit_code: int, logs: str) -> None:
+    logger.debug("Job %s exit code: %d", job_name, exit_code)
+    truncated = (
+        (logs[: constants.MAX_POD_LOG_SIZE - 3] + "…")
+        if len(logs) > constants.MAX_POD_LOG_SIZE
+        else logs
+    )
+    logger.debug(
+        "Job %s pod logs (%d bytes): %s",
+        job_name,
+        len(logs),
+        truncated,
+    )
 
 
+@app.task(ignore_result=True)
+def dispatch_job(body: Any) -> None:
+    try:
+        data = json.loads(body)
+    except json.decoder.JSONDecodeError:
+        error_str = f"Could not decode JSON body: {body}"
+        logger.error(error_str)
+        producer.produce_response_msg(
+            producer.ErrorResponseModel(id=None, error=error_str)
+        )
+        return
+
+    try:
+        args = TaskArgModel.model_validate(data)
+    except ValidationError as e:
+        error_str = f"Invalid task arguments: '{str(e)}'"
+        producer.produce_response_msg(
+            producer.ErrorResponseModel(id=str(data.get("id", None)), error=error_str)
+        )
+        logger.error(e)
+        return
 
     batch_api = k8s_client.BatchV1Api()
     core_api = k8s_client.CoreV1Api()
@@ -194,31 +265,29 @@ def dispatch_job(args: TaskArgModel) -> None:
 
     job_dispatcher = JobDispatcher(core_api, batch_api, watcher)
 
-    # Use ID as job name.
     try:
         job = job_dispatcher.build_job(args)
-        logger.info(f"Built job: '{args.id}'")
+        logger.info("Built job: %s", args.id)
 
         job_dispatcher.run_job(job, constants.NAMESPACE)
-        logger.info(f"Running job: '{args.id}'")
+        logger.info("Started job: %s", args.id)
 
         job_status = job_dispatcher.wait_for_job_completion(
             args.id, constants.NAMESPACE
         )
         if job_status:
-            logger.info(f"Job '{args.id}' completed successfully")
+            logger.info("Job %s succeeded", args.id)
         else:
-            logger.error(f"Job '{args.id}' failed")
+            logger.error("Job %s failed", args.id)
 
         logs, exit_code = job_dispatcher.get_job_result(args.id, constants.NAMESPACE)
-        if not logs:
-            logger.error(f"Job '{args.id}' pod logs empty")
-        else:
-            logger.info(f"Job '{args.id}' pod logs: {logs}")
+        log_job_result(args.id, exit_code, logs)
 
         producer.produce_response_msg(
             producer.ResponseModel(id=args.id, output=logs, exit=exit_code)
         )
-    except Exception as e:
-        logger.exception(e)
-        return
+    except KubernetesError:
+        logger.exception("Kubernetes action error for job %s", args.id)
+        producer.produce_response_msg(
+            producer.ErrorResponseModel(id=args.id, error="Dispatcher error")
+        )

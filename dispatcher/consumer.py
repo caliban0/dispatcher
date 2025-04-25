@@ -4,6 +4,7 @@ import logging
 import re
 from typing import Any
 
+import celery
 from celery import bootsteps
 from kombu import Consumer, Exchange, Message, Queue
 from pydantic import BaseModel, ValidationError, field_validator
@@ -46,47 +47,51 @@ class TaskArgModel(BaseModel):
         return v
 
 
-class ConsumerStep(bootsteps.ConsumerStep):
-    # Using Any, because import 'Channel' gives an error.
-    def get_consumers(self, channel: Any) -> list[Consumer]:
-        return [
-            Consumer(
-                channel,
-                queues=[_queue],
-                on_message=self.on_message,
-            )
-        ]
+def consumer_step_factory(
+    _task: celery.app.task.Task[[TaskArgModel], None],
+) -> type[bootsteps.ConsumerStep]:
+    class ConsumerStep(bootsteps.ConsumerStep):
+        task = _task
 
-    # Add unit tests.
-    def on_message(self, message: Message) -> None:
-        # To avoid circular import.
-        from .tasks import dispatch_job
+        # Using Any, because import 'Channel' gives an error.
+        def get_consumers(self, channel: Any) -> list[Consumer]:
+            return [
+                Consumer(
+                    channel,
+                    queues=[_queue],
+                    on_message=self.on_message,
+                )
+            ]
 
-        message.ack()
+        # Add unit tests.
+        def on_message(self, message: Message) -> None:
+            message.ack()
 
-        try:
-            if message.body is None:
-                raise ValueError("Message body is None")
-            args = TaskArgModel.model_validate_json(message.body)
-        except ValidationError as e:
-            error_str = f"Invalid task arguments: '{
-                [
-                    {
-                        'type': err.get('type', None),
-                        'loc': err.get('loc', None),
-                        'msg': err.get('msg', None),
-                        'input': err.get('input', None),
-                    }
-                    for err in e.errors()
-                ]
-            }'"
-            logging.exception("Invalid task arguments")
-            produce_response_msg(ErrorResponseModel(id=None, error=error_str))
-            return
-        except ValueError as e:
-            error_str = str(e)
-            logging.exception("Message body is None")
-            produce_response_msg(ErrorResponseModel(id=None, error=error_str))
-            return
+            try:
+                if message.body is None:
+                    raise ValueError("Message body is None")
+                args = TaskArgModel.model_validate_json(message.body)
+            except ValidationError as e:
+                error_str = f"Invalid task arguments: '{
+                    [
+                        {
+                            'type': err.get('type', None),
+                            'loc': err.get('loc', None),
+                            'msg': err.get('msg', None),
+                            'input': err.get('input', None),
+                        }
+                        for err in e.errors()
+                    ]
+                }'"
+                logging.exception("Invalid task arguments")
+                produce_response_msg(ErrorResponseModel(id=None, error=error_str))
+                return
+            except ValueError as e:
+                error_str = str(e)
+                logging.exception("Message body is None")
+                produce_response_msg(ErrorResponseModel(id=None, error=error_str))
+                return
 
-        dispatch_job.delay(args)
+            self.task.delay(args)
+
+    return ConsumerStep

@@ -13,7 +13,7 @@ from kubernetes import config as k8s_config
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
 from dispatcher import constants, producer
-from dispatcher.consumer import ConsumerStep, TaskArgModel
+from dispatcher.consumer import TaskArgModel, consumer_step_factory
 from dispatcher.settings import settings
 
 logging.basicConfig(
@@ -35,10 +35,6 @@ def setup_k8s(**kwargs: Any) -> None:
 
 
 app = Celery(constants.APP_NAME, broker=str(settings.broker_url))
-
-app.steps["consumer"].add(ConsumerStep)
-
-app.conf.update(accept_content=["json", "pickle"], task_serializer="pickle")
 
 
 class KubernetesError(Exception):
@@ -288,3 +284,8 @@ def dispatch_job(args: TaskArgModel) -> None:
             producer.produce_response_msg(
                 producer.ErrorResponseModel(id=args.id, error="Dispatcher error")
             )
+
+
+app.steps["consumer"].add(consumer_step_factory(dispatch_job))
+
+app.conf.update(accept_content=["json", "pickle"], task_serializer="pickle")

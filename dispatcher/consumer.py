@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import json
+import logging
+import re
 from typing import Any
 
 from celery import bootsteps
-from kombu import Consumer, Exchange, Queue
-from pydantic import BaseModel
+from kombu import Consumer, Exchange, Message, Queue
+from pydantic import BaseModel, ValidationError, field_validator
 
+from dispatcher.producer import ErrorResponseModel, produce_response_msg
 from dispatcher.settings import settings
 
 _queue = Queue(
@@ -35,23 +37,56 @@ class TaskArgModel(BaseModel):
     args: list[str] | None = None
     cmd: list[str] | None = None
 
+    @field_validator("id", mode="after")
+    @classmethod
+    def is_valid_dns_label(cls, v: str) -> str:
+        p = re.compile(r"[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?")
+        if not bool(p.fullmatch(v)):
+            raise ValueError(f"id '{v}' is not a valid DNS label")
+        return v
+
 
 class ConsumerStep(bootsteps.ConsumerStep):
+    # Using Any, because import 'Channel' gives an error.
     def get_consumers(self, channel: Any) -> list[Consumer]:
         return [
             Consumer(
                 channel,
                 queues=[_queue],
-                callbacks=[self.handle_message],
-                accept=["json"],
+                on_message=self.on_message,
             )
         ]
 
-    def handle_message(self, body: Any, message: Any) -> None:
+    # Add unit tests.
+    def on_message(self, message: Message) -> None:
         # To avoid circular import.
         from .tasks import dispatch_job
 
-        # Kind of clunky, since 'delay' only accepts JSON
-        # serializable objects, we have to dump into a dict pre-call.
-        dispatch_job.delay(json.loads(body))
         message.ack()
+
+        try:
+            if message.body is None:
+                raise ValueError("Message body is None")
+            args = TaskArgModel.model_validate_json(message.body)
+        except ValidationError as e:
+            error_str = f"Invalid task arguments: '{
+                [
+                    {
+                        'type': err.get('type', None),
+                        'loc': err.get('loc', None),
+                        'msg': err.get('msg', None),
+                        'input': err.get('input', None),
+                    }
+                    for err in e.errors()
+                ]
+            }'"
+            logging.exception("Invalid task arguments")
+            produce_response_msg(ErrorResponseModel(id=None, error=error_str))
+            return
+        except ValueError as e:
+            error_str = str(e)
+            logging.exception("Message body is None")
+            produce_response_msg(ErrorResponseModel(id=None, error=error_str))
+            return
+
+        dispatch_job.delay(args)

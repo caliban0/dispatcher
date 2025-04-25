@@ -22,14 +22,33 @@ class ResponseModel(BaseModel):
         id: Task id. RFC 1035 DNS label compliant.
         output: Logs of job pods.
         exit: Container exit code.
+        error: Protocol required null error field.
     """
 
     id: str
     output: str
     exit: int
+    error: None = None
 
 
-def produce_response_msg(resp: ResponseModel) -> None:
+class ErrorResponseModel(BaseModel):
+    """Message error response model
+
+    Attributes:
+        id: Task id. RFC 1035 DNS label compliant. Null if not provided by the task request message.
+        output: Protocol required container output field, set to null, since the container didn't run.
+        exit: Protocol required container exit code, set to null, since the container didn't run.
+        error: Error message.
+
+    """
+
+    id: str | None
+    output: None = None
+    exit: None = None
+    error: str
+
+
+def produce_response_msg(resp: ResponseModel | ErrorResponseModel) -> None:
     with Connection(str(settings.broker_url)) as conn:
         # Connection does have the Producer attribute, a celery type stub issue.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]

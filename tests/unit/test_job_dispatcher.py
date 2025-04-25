@@ -9,6 +9,7 @@ from kubernetes import client as k8s_client
 
 # Kubernetes stubs issues.
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
+from pydantic import ValidationError
 
 from dispatcher import tasks
 from dispatcher.consumer import TaskArgModel
@@ -54,22 +55,6 @@ def test_build_job_returns_job_when_k8s_success(
     assert job.spec.template.spec.containers[0].working_dir == "/opt"
     assert job.spec.template.spec.containers[0].volume_mounts is not None
     assert job.spec.template.spec.containers[0].volume_mounts[0].mount_path == "/root/"
-
-
-def test_build_job_fails_when_job_name_not_dns_label(
-    job_dispatcher: tasks.JobDispatcher,
-) -> None:
-    with pytest.raises(ValueError) as excinfo:
-        job_dispatcher.build_job(
-            TaskArgModel(
-                image="alpine:3.21.3",
-                id="-",
-                args=['echo "Starting"; sleep 10; echo "Done"'],
-                cmd=["sh", "-c"],
-                credentials_mount_path="/root/",
-            )
-        )
-    assert str(excinfo.value) == "job name '-' is not a valid DNS label"
 
 
 def _inject_watch_stream(
@@ -152,8 +137,16 @@ valid_labels: list[str] = [
 
 
 @pytest.mark.parametrize("label", valid_labels)
-def test_is_valid_dns_label_returns_true_when_valid_dns_label(label: str) -> None:
-    assert tasks._is_valid_dns_label(label) is True
+def test_validate_task_args_succeeds_when_id_valid_dns_label(label: str) -> None:
+    TaskArgModel.model_validate(
+        {
+            "image": "alpine:3.21.3",
+            "id": label,
+            "args": ['echo "Starting"; sleep 10; echo "Done"'],
+            "cmd": ["sh", "-c"],
+            "credentials_mount_path": "/root/",
+        }
+    )
 
 
 invalid_labels: list[str] = [
@@ -166,5 +159,16 @@ invalid_labels: list[str] = [
 
 
 @pytest.mark.parametrize("label", invalid_labels)
-def test_is_valid_dns_label_returns_false_when_invalid_dns_label(label: str) -> None:
-    assert tasks._is_valid_dns_label(label) is False
+def test_validate_task_args_fails_when_id_not_dns_label(label: str) -> None:
+    with pytest.raises(ValidationError) as excinfo:
+        TaskArgModel.model_validate(
+            {
+                "image": "alpine:3.21.3",
+                "id": label,
+                "args": ['echo "Starting"; sleep 10; echo "Done"'],
+                "cmd": ["sh", "-c"],
+                "credentials_mount_path": "/root/",
+            }
+        )
+    for error in excinfo.value.errors():
+        assert error["msg"] == f"Value error, id '{label}' is not a valid DNS label"

@@ -196,39 +196,42 @@ class JobDispatcher:
                 if state is not None and state.terminated is not None:
                     return state.terminated.exit_code
 
-        # This probably shouldn't be a ValueError.
-        raise ValueError(
-            f"Could not determine pod container exit code for pod: '{pod.to_dict()}'"
+        raise RuntimeError(
+            f"Could not determine container exit code for pod: '{pod.to_dict()}'"
         )
 
     @kubernetes_action(name="get job result")
     def get_job_result(self, job_name: str, namespace: str) -> tuple[str, int]:
-        """Get logs and exit code of the first pod created by the job.
+        """Get logs and exit code of the pod created by the job.
 
         The job MUST be in a terminal state.
+
+        Raises:
+            RuntimeError: If the job has more than one pod, or if the pod doesn't exist.
+             If the pod doesn't have metadata or the container exit code cannot be determined.
         """
         pods = self._core_api_instance.list_namespaced_pod(
             namespace=namespace, label_selector=f"job-name={job_name}"
         )
 
-        logs: list[str] = []
-        exit_codes: list[int] = []
+        if len(pods.items) != 1:
+            raise RuntimeError(
+                f"Expected 1 pod, got {len(pods.items)} for job '{job_name}'"
+            )
 
-        for pod in pods.items:
-            exit_codes.append(self.get_pod_container_exit_code(pod))
+        pod = pods.items[0]
 
-            # In practice, this can only happen if we try to read a pod when we shouldn't,
-            # e.g., during create or update. Otherwise, 'metadata' is a required field.
-            pod_name = pod.metadata.name if pod.metadata is not None else None
-            if pod_name is None:
-                logger.error(f"No metadata for pod created by job: '{job_name}'")
-                continue
+        exit_code = self.get_pod_container_exit_code(pod)
 
-            log = self._core_api_instance.read_namespaced_pod_log(pod_name, namespace)
-            logs.append(log)
+        # In practice, this can only happen if we try to read a pod when we shouldn't,
+        # e.g., during create or update. Otherwise, 'metadata' is a required field.
+        pod_name = pod.metadata.name if pod.metadata is not None else None
+        if pod_name is None:
+            raise RuntimeError(f"No metadata for pod created by job: '{job_name}'")
 
-        # Need to account for empty lists.
-        return logs[0], exit_codes[0]
+        log = self._core_api_instance.read_namespaced_pod_log(pod_name, namespace)
+
+        return log, exit_code
 
 
 def log_job_result(job_name: str, exit_code: int, logs: str) -> None:

@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _get_env_file_path() -> str:
-    """Return absolute path of env file."""
+    """Return the absolute path of the env file."""
     project_root = Path(__file__).resolve().parent.parent
     return str(project_root / ".env")
 

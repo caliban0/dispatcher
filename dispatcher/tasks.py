@@ -45,6 +45,10 @@ class KubernetesError(Exception):
     pass
 
 
+class DuplicateJobError(Exception):
+    pass
+
+
 def kubernetes_action[T, **P](name: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator for Kubernetes actions.
 
@@ -139,7 +143,13 @@ class JobDispatcher:
 
     @kubernetes_action(name="run job")
     def run_job(self, job: k8s_client.V1Job, namespace: str) -> None:
-        self._batch_api_instance.create_namespaced_job(namespace=namespace, body=job)
+        try:
+            self._batch_api_instance.create_namespaced_job(
+                namespace=namespace, body=job
+            )
+        except k8s_client.exceptions.ApiException as e:
+            if e.body is not None and '"reason":"AlreadyExists"' in e.body:
+                raise DuplicateJobError() from e
 
     @kubernetes_action(name="wait for job completion")
     def wait_for_job_completion(self, job_name: str, namespace: str) -> bool:
@@ -265,10 +275,13 @@ def dispatch_job(args: TaskArgModel) -> None:
         producer.produce_response_msg(
             producer.ResponseModel(id=args.id, output=logs, exit=exit_code)
         )
-    except KubernetesError:
+    except KubernetesError as e:
         logger.exception("Kubernetes action error for job %s", args.id)
-        # More descriptive error responses should be used, for example, if
-        # a job is called with the same ID, send an accurate error for that.
-        producer.produce_response_msg(
-            producer.ErrorResponseModel(id=args.id, error="Dispatcher error")
-        )
+        if e.__cause__ is not None and isinstance(e.__cause__, DuplicateJobError):
+            producer.produce_response_msg(
+                producer.ErrorResponseModel(id=args.id, error="Duplicate job ID")
+            )
+        else:
+            producer.produce_response_msg(
+                producer.ErrorResponseModel(id=args.id, error="Dispatcher error")
+            )

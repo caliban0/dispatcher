@@ -186,7 +186,7 @@ def test_dispatcher_error_when_duplicate_job_names(consumer_broker_url: str) -> 
                     "id": "test-123",
                     "output": None,
                     "exit": None,
-                    "error": "Dispatcher error",
+                    "error": "Duplicate job ID",
                 }
             )
 

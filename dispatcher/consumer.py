@@ -63,7 +63,6 @@ def consumer_step_factory(
                 )
             ]
 
-        # Add unit tests.
         def on_message(self, message: Message) -> None:
             message.ack()
 

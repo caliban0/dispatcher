@@ -30,14 +30,14 @@ test_cases_valid_params: list[
     (
         {
             "id": "sleep-b5ea55ff-27cf-48f7-a2c9-b5412597159d",
-            "image": "alpine:3.21.3",
-            "cmd": ["cat", "username.txt"],
+            "image": "alpine:latest",
+            "cmd": ["cat", "hello.txt"],
             "working_dir": "/root",
-            "credentials_mount_path": "/root/",
+            "volume_mount_path": "/root/",
         },
         {
             "id": "sleep-b5ea55ff-27cf-48f7-a2c9-b5412597159d",
-            "output": "hello",
+            "output": "hello world!\n",
             "exit": 0,
             "error": None,
         },
@@ -45,8 +45,8 @@ test_cases_valid_params: list[
     (
         {
             "id": "sleep-30216d7a-0061-4c24-b029-394fda8834f5",
-            "image": "alpine:3.21.3",
-            "credentials_mount_path": "/root/",
+            "image": "alpine:latest",
+            "volume_mount_path": "/root/",
             "cmd": ["sh", "-c", "sleeeeep 1"],
         },
         {
@@ -99,7 +99,7 @@ test_cases_invalid_params: list[
             " 'msg': 'Field required', 'input': {'no_existing': 1}},"
             " {'type': 'missing', 'loc': ('image',),"
             " 'msg': 'Field required', 'input': {'no_existing': 1}},"
-            " {'type': 'missing', 'loc': ('credentials_mount_path',),"
+            " {'type': 'missing', 'loc': ('volume_mount_path',),"
             " 'msg': 'Field required', 'input': {'no_existing': 1}}]'",
         },
     ),
@@ -113,7 +113,7 @@ test_cases_invalid_params: list[
             " \"Value error, id '-' is not a valid DNS label\", 'input':"
             " '-'}, {'type': 'missing', 'loc': ('image',), 'msg':"
             " 'Field required', 'input': {'id': '-'}},"
-            " {'type': 'missing', 'loc': ('credentials_mount_path',), 'msg':"
+            " {'type': 'missing', 'loc': ('volume_mount_path',), 'msg':"
             " 'Field required', 'input': {'id': '-'}}]'",
         },
     ),
@@ -198,10 +198,10 @@ def test_dispatcher_error_when_duplicate_job_names(consumer_broker_url: str) -> 
             producer.publish(
                 {
                     "id": "test-123",
-                    "image": "alpine:3.21.3",
+                    "image": "alpine:latest",
                     "cmd": ["cat", "username.txt"],
                     "working_dir": "/root",
-                    "credentials_mount_path": "/root/",
+                    "volume_mount_path": "/root/",
                 },
                 exchange=_task_exchange,
                 routing_key=settings.task_routing_key,

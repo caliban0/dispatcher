@@ -24,7 +24,7 @@ def k8s_app_api(_load_kube_config: None) -> client.AppsV1Api:
 
 @pytest.fixture(scope="session")
 def _env_vars() -> list[client.V1EnvVar]:
-    """Set environment to deploy in-cluster, with default routing params."""
+    """Set the environment to deploy in-cluster, with default routing params."""
     return [
         client.V1EnvVar(name="AMQP_SCHEME", value=settings.amqp_scheme),
         client.V1EnvVar(name="AMQP_USER", value=settings.amqp_user),
@@ -56,7 +56,6 @@ def dispatcher_deployment(
 ) -> None:
     container = client.V1Container(
         name=constants.APP_NAME,
-        # Test image name is defined in the integration test script in pyproject.toml
         image="dispatcher:test",
         image_pull_policy="Never",
         env=_env_vars,
@@ -89,6 +88,42 @@ def dispatcher_deployment(
     k8s_app_api.create_namespaced_deployment(
         body=deployment, namespace=constants.NAMESPACE
     )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def pv_setup(k8s_core_api: client.CoreV1Api, dispatcher_deployment: None) -> None:
+    volume = client.V1Volume(
+        name=constants.PV_NAME,
+        persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+            claim_name=constants.PVC_NAME
+        ),
+    )
+
+    volume_mount = client.V1VolumeMount(
+        mount_path="/root",
+        name=constants.PV_NAME,
+    )
+
+    container = client.V1Container(
+        name=constants.APP_NAME + "-pv-setup",
+        image="alpine:latest",
+        command=["/bin/ash", "-c"],
+        args=['echo "hello world!" > /root/hello.txt'],
+        volume_mounts=[volume_mount],
+    )
+
+    pod_spec = client.V1PodSpec(
+        containers=[container], volumes=[volume], restart_policy="Never"
+    )
+
+    pod = client.V1Pod(
+        api_version="v1",
+        kind="Pod",
+        metadata=client.V1ObjectMeta(name="pv-setup"),
+        spec=pod_spec,
+    )
+
+    k8s_core_api.create_namespaced_pod(namespace=constants.NAMESPACE, body=pod)
 
 
 @pytest.fixture(scope="session")

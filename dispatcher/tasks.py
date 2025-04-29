@@ -90,10 +90,16 @@ class JobDispatcher:
         """
         # We're going to use the task ID as the job name.
 
+        volume = k8s_client.V1Volume(
+            name=constants.PV_NAME,
+            persistent_volume_claim=k8s_client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=constants.PVC_NAME
+            ),
+        )
+
         volume_mount = k8s_client.V1VolumeMount(
-            name=constants.CREDENTIALS_VOLUME_NAME,
-            mount_path=args.credentials_mount_path,
-            read_only=True,
+            mount_path=args.volume_mount_path,
+            name=constants.PV_NAME,
         )
 
         container = k8s_client.V1Container(
@@ -109,14 +115,7 @@ class JobDispatcher:
 
         pod_spec = k8s_client.V1PodSpec(
             containers=[container],
-            volumes=[
-                k8s_client.V1Volume(
-                    name=constants.CREDENTIALS_VOLUME_NAME,
-                    secret=k8s_client.V1SecretVolumeSource(
-                        secret_name=constants.CREDENTIALS_SECRET_NAME
-                    ),
-                )
-            ],
+            volumes=[volume],
             restart_policy=constants.POD_RESTART_POLICY,
         )
 

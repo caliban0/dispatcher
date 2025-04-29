@@ -33,7 +33,7 @@ def test_build_job_returns_job_when_k8s_success(
             id="sleep-100d92ab-e9b4-4cd4-9fbf-4213c00bda84b",
             args=['echo "Starting"; sleep 10; echo "Done"'],
             working_dir="/opt",
-            credentials_mount_path="/root/",
+            volume_mount_path="/root/",
             cmd=["sh", "-c"],
         )
     )
@@ -144,7 +144,7 @@ def test_validate_task_args_succeeds_when_id_valid_dns_label(label: str) -> None
             "id": label,
             "args": ['echo "Starting"; sleep 10; echo "Done"'],
             "cmd": ["sh", "-c"],
-            "credentials_mount_path": "/root/",
+            "volume_mount_path": "/root/",
         }
     )
 
@@ -167,7 +167,7 @@ def test_validate_task_args_fails_when_id_not_dns_label(label: str) -> None:
                 "id": label,
                 "args": ['echo "Starting"; sleep 10; echo "Done"'],
                 "cmd": ["sh", "-c"],
-                "credentials_mount_path": "/root/",
+                "volume_mount_path": "/root/",
             }
         )
     for error in excinfo.value.errors():

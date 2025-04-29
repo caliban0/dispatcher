@@ -25,7 +25,7 @@ class TaskArgModel(BaseModel):
     Attributes:
         id: The id of the task. Will be used as the job name, so must be RFC 1035 compliant.
         image: Full container image name.
-        credentials_mount_path: The path where the credentials will be mounted in the container.
+        volume_mount_path: The path where the volume will be mounted in the pod.
         working_dir: The working directory of the container.
         args: Container args. CMD is the Dockerfile equivalent.
         cmd: Container command. ENTRYPOINT is the Dockerfile equivalent.
@@ -33,7 +33,7 @@ class TaskArgModel(BaseModel):
 
     id: str
     image: str
-    credentials_mount_path: str
+    volume_mount_path: str
     working_dir: str | None = None
     args: list[str] | None = None
     cmd: list[str] | None = None

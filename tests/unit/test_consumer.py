@@ -27,7 +27,7 @@ def test_on_message_with_simple_message_should_dispatch_job(
     message = mock.create_autospec(kombu.Message, spec_set=True)
 
     body = consumer.TaskArgModel(
-        id="test-123", image="test-image:latest", credentials_mount_path="/"
+        id="test-123", image="test-image:latest", volume_mount_path="/"
     )
     message.body = body.model_dump_json()
 
@@ -82,7 +82,7 @@ def test_on_message_with_invalid_message_body_should_fail(
             " 'msg': 'Input should be a valid string', 'input': 1},"
             " {'type': 'missing', 'loc': ('image',),"
             " 'msg': 'Field required', 'input': {'id': 1}},"
-            " {'type': 'missing', 'loc': ('credentials_mount_path',),"
+            " {'type': 'missing', 'loc': ('volume_mount_path',),"
             " 'msg': 'Field required', 'input': {'id': 1}}]'",
         )
     )

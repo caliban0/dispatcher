@@ -23,42 +23,31 @@ def k8s_app_api(_load_kube_config: None) -> client.AppsV1Api:
 
 
 @pytest.fixture(scope="session")
-def _env_vars() -> list[client.V1EnvVar]:
-    """Set the environment to deploy in-cluster, with default routing params."""
-    return [
-        client.V1EnvVar(name="AMQP_SCHEME", value=settings.amqp_scheme),
-        client.V1EnvVar(name="AMQP_USER", value=settings.amqp_user),
-        client.V1EnvVar(name="AMQP_PASSWORD", value=settings.amqp_password),
-        client.V1EnvVar(name="AMQP_HOST", value=settings.amqp_host),
-        client.V1EnvVar(name="AMQP_PORT", value=str(settings.amqp_port)),
-        client.V1EnvVar(name="AMQP_VHOST", value=settings.amqp_vhost),
-        client.V1EnvVar(name="TASK_QUEUE_NAME", value=settings.task_queue_name),
-        client.V1EnvVar(name="TASK_EXCHANGE_NAME", value=settings.task_exchange_name),
-        client.V1EnvVar(name="TASK_EXCHANGE_TYPE", value=settings.task_exchange_type),
-        client.V1EnvVar(name="TASK_ROUTING_KEY", value=settings.task_routing_key),
-        client.V1EnvVar(name="RESPONSE_QUEUE_NAME", value=settings.response_queue_name),
-        client.V1EnvVar(
-            name="RESPONSE_EXCHANGE_NAME", value=settings.response_exchange_name
-        ),
-        client.V1EnvVar(
-            name="RESPONSE_EXCHANGE_TYPE", value=settings.response_exchange_type
-        ),
-        client.V1EnvVar(
-            name="RESPONSE_ROUTING_KEY", value=settings.response_routing_key
-        ),
-        client.V1EnvVar(name="K8S_IN_CLUSTER", value=settings.k8s_in_cluster),
-    ]
+def credentials_secret(k8s_core_api: client.CoreV1Api) -> None:
+    """Read the cluster credentials from settings and create a Kubernetes secret."""
+    secret = client.V1Secret(
+        api_version="v1",
+        kind="Secret",
+        metadata=client.V1ObjectMeta(name="credentials-secret"),
+        string_data=settings.model_dump(),
+    )
+
+    k8s_core_api.create_namespaced_secret(namespace=constants.NAMESPACE, body=secret)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def dispatcher_deployment(
-    k8s_app_api: client.AppsV1Api, _env_vars: list[client.V1EnvVar]
+    k8s_app_api: client.AppsV1Api, credentials_secret: None
 ) -> None:
     container = client.V1Container(
         name=constants.APP_NAME,
         image="dispatcher:test",
         image_pull_policy="Never",
-        env=_env_vars,
+        env_from=[
+            client.V1EnvFromSource(
+                secret_ref=client.V1SecretEnvSource(name="credentials-secret")
+            )
+        ],
     )
 
     template = client.V1PodTemplateSpec(

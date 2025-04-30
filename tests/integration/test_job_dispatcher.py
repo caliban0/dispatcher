@@ -24,6 +24,19 @@ _response_queue = Queue(
     routing_key=settings.response_routing_key,
 )
 
+
+def publish_msg(
+    producer: Any, msg: dict[str, int | str | list[str] | None] | str
+) -> None:
+    producer.publish(
+        msg,
+        exchange=_task_exchange,
+        routing_key=settings.task_routing_key,
+        declare=[_task_queue],
+        retry=False,
+    )
+
+
 test_cases_valid_params: list[
     tuple[dict[str, int | str | list[str] | None] | str, dict[str, int | str | None]]
 ] = [
@@ -74,13 +87,7 @@ def test_valid_params(
     with Connection(consumer_broker_url) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
-        producer.publish(
-            task_req_msg,
-            exchange=_task_exchange,
-            routing_key=settings.task_routing_key,
-            declare=[_task_queue],
-            retry=False,
-        )
+        publish_msg(producer, task_req_msg)
 
         with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]
             conn.drain_events(timeout=60)  # type: ignore[attr-defined]
@@ -161,13 +168,7 @@ def test_invalid_params(
         else:
             producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
 
-        producer.publish(
-            task_req_msg,
-            exchange=_task_exchange,
-            routing_key=settings.task_routing_key,
-            declare=[_task_queue],
-            retry=False,
-        )
+        publish_msg(producer, task_req_msg)
 
         with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]
             conn.drain_events(timeout=60)  # type: ignore[attr-defined]
@@ -195,7 +196,8 @@ def test_dispatcher_error_when_duplicate_job_names(consumer_broker_url: str) -> 
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
 
         def publish() -> None:
-            producer.publish(
+            publish_msg(
+                producer,
                 {
                     "id": "test-123",
                     "image": "alpine:latest",
@@ -203,10 +205,6 @@ def test_dispatcher_error_when_duplicate_job_names(consumer_broker_url: str) -> 
                     "working_dir": "/root",
                     "volume_mount_path": "/root/",
                 },
-                exchange=_task_exchange,
-                routing_key=settings.task_routing_key,
-                declare=[_task_queue],
-                retry=False,
             )
 
         with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]

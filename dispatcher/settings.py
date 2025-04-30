@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
 
-from pydantic import AmqpDsn
+from pydantic import AmqpDsn, field_serializer
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     Provided defaults assume an in-cluster instance.
     A .env file in the project root and environment variables
-    can be used to override the default values.
+    can be used to override the default values. Serializes to a [string, string] mapping.
 
     Attributes:
         amqp_scheme: AMQP broker URL scheme.
@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     amqp_password: str = "guest"
     amqp_host: str = "rabbitmq.dispatcher.svc.cluster.local"
     amqp_port: int = 5672
+
+    @field_serializer("amqp_port")
+    def serialize_amqp_port(self, amqp_port: int) -> str:
+        return str(amqp_port)
+
     amqp_vhost: str = "/"
 
     @property

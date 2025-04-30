@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+import kubernetes.client
 import pytest
 from kombu import Connection, Exchange, Queue
 
+from dispatcher import constants
 from dispatcher.producer import ErrorResponseModel, ResponseModel
 from dispatcher.settings import settings
 
@@ -88,6 +90,35 @@ def test_valid_params(
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
         publish_msg(producer, task_req_msg)
+
+        with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]
+            conn.drain_events(timeout=60)  # type: ignore[attr-defined]
+
+
+def test_image_pull_secret_assigned_to_job_pod(
+    consumer_broker_url: str, k8s_core_api: kubernetes.client.CoreV1Api
+) -> None:
+    def process_return(body: Any, message: Any) -> None:
+        message.ack()
+        pod = k8s_core_api.list_namespaced_pod(
+            constants.NAMESPACE, label_selector="job-name=test-image-pull-secret"
+        ).items[0]
+
+        assert pod.spec is not None and pod.spec.image_pull_secrets is not None
+        assert pod.spec.image_pull_secrets[0].name == "test-image-pull-secret"
+
+    with Connection(consumer_broker_url) as conn:
+        # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
+        producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
+        publish_msg(
+            producer,
+            {
+                "id": "test-image-pull-secret",
+                "image": "alpine:latest",
+                "volume_mount_path": "/root/",
+                "cmd": ["ls"],
+            },
+        )
 
         with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]
             conn.drain_events(timeout=60)  # type: ignore[attr-defined]

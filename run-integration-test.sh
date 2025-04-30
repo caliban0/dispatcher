@@ -51,6 +51,10 @@ kind load docker-image dispatcher:test --name "${CLUSTER_NAME}"
 kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/namespace.yaml
 kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/rbac.yaml
 kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/pv-volume-claim.yaml
+kubectl -n dispatcher create secret docker-registry test-image-pull-secret --docker-server=DOCKER_REGISTRY_SERVER \
+        --docker-username=DUMMY_USERNAME --docker-password=DUMMY_DOCKER_PASSWORD \
+        --docker-email=DUMMY_DOCKER_EMAIL
+kubectl -n dispatcher patch serviceaccount job-internal -p '{"imagePullSecrets": [{"name": "test-image-pull-secret"}]}'
 
 if [ "$DEPLOY_RABBIT" = "true" ]; then
     kubectl --context "kind-${CLUSTER_NAME}" apply -f manifests/rabbitmq.yaml

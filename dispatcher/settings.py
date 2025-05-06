@@ -76,6 +76,9 @@ class Settings(BaseSettings):
     response_exchange_name: str = "responses"
     response_exchange_type: str = "direct"
     response_routing_key: str = "response"
+    pv_name: str = "worker-pv-volume"
+    pvc_name: str = "worker-pv-claim"
+    internal_service_account_name: str = "job-internal"
     k8s_in_cluster: Literal["true", "false"] = "true"
 
 

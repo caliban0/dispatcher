@@ -81,16 +81,21 @@ def dispatcher_deployment(
 
 @pytest.fixture(scope="session", autouse=True)
 def pv_setup(k8s_core_api: client.CoreV1Api, dispatcher_deployment: None) -> None:
+    """Set up a persistent volume for later use in the tests.
+
+    Creates a persistent volume with the file "hello.txt" and content
+    "hello world!".
+    """
     volume = client.V1Volume(
-        name=constants.PV_NAME,
+        name=settings.pv_name,
         persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-            claim_name=constants.PVC_NAME
+            claim_name=settings.pvc_name
         ),
     )
 
     volume_mount = client.V1VolumeMount(
         mount_path="/root",
-        name=constants.PV_NAME,
+        name=settings.pv_name,
     )
 
     container = client.V1Container(

@@ -17,6 +17,6 @@ def process_return(body: Any, message: Any) -> None:
     print(body)
     message.ack()
 
-with Connection(str(settings.broker_url)) as conn:
+with Connection("amqp://guest:guest@localhost:5672//") as conn:
     with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]
         conn.drain_events(timeout=20)  # type: ignore[attr-defined]

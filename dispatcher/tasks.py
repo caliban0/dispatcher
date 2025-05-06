@@ -117,7 +117,7 @@ class JobDispatcher:
             containers=[container],
             volumes=[volume],
             restart_policy=constants.POD_RESTART_POLICY,
-            service_account_name=settings.internal_service_account_name
+            service_account_name=settings.internal_service_account_name,
         )
 
         template = k8s_client.V1PodTemplateSpec(

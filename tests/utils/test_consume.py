@@ -13,9 +13,11 @@ _response_queue = Queue(
     routing_key=settings.response_routing_key,
 )
 
+
 def process_return(body: Any, message: Any) -> None:
     print(body)
     message.ack()
+
 
 with Connection("amqp://guest:guest@localhost:5672//") as conn:
     with conn.Consumer(_response_queue, callbacks=[process_return]) as _:  # type: ignore[attr-defined]

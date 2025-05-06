@@ -87,7 +87,7 @@ def pv_setup(k8s_core_api: client.CoreV1Api, dispatcher_deployment: None) -> Non
     "hello world!".
     """
     volume = client.V1Volume(
-        name=settings.pv_name,
+        name="init-volume",
         persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
             claim_name=settings.pvc_name
         ),
@@ -95,7 +95,7 @@ def pv_setup(k8s_core_api: client.CoreV1Api, dispatcher_deployment: None) -> Non
 
     volume_mount = client.V1VolumeMount(
         mount_path="/root",
-        name=settings.pv_name,
+        name="init-volume",
     )
 
     container = client.V1Container(

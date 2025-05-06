@@ -91,7 +91,7 @@ class JobDispatcher:
         # We're going to use the task ID as the job name.
 
         volume = k8s_client.V1Volume(
-            name=settings.pv_name,
+            name="task-pv-storage",
             persistent_volume_claim=k8s_client.V1PersistentVolumeClaimVolumeSource(
                 claim_name=settings.pvc_name
             ),
@@ -99,7 +99,7 @@ class JobDispatcher:
 
         volume_mount = k8s_client.V1VolumeMount(
             mount_path=args.volume_mount_path,
-            name=settings.pv_name,
+            name="task-pv-storage",
         )
 
         container = k8s_client.V1Container(

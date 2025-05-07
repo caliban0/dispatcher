@@ -122,3 +122,21 @@ an error as quickly as possible.
 
 Although the jobs are run in a non-parallel, non-restarting fashion (a single pod with `restartPolicy=Never`),
 kubernetes doesn't guarantee that the workload will only be run once. Ideally, that should be accounted for.
+
+## Testing
+
+### Unit tests
+
+Unit tests can be run with `pdm run test-unit`.
+
+### Integration tests
+
+Integration tests required additional setup and teardown, `run-integration-test.sh` is a helper script that provides
+that. `kind` and `kubectl` are required to run the script, as well as a `kind` cluster, set up beforehand. The script
+accepts two options: `--deploy-rabbit` (defaults to "false"), which sets whether an in-cluster RabbitMQ instance should
+be deployed for testing and `--cluster-name` (defaults to "test-cluster"), which sets the `kind` cluster name that will
+be used to run the tests. Note that a "kind-" pre-fix is not used for the test cluster name.
+
+Integration tests WILL use set env variables (or a dotenv file) when deploying the job dispatcher test instance.
+If using an in-cluster RabbitMQ instance with `--deploy-rabbit`, `AMQP_` env vars should NOT be set, otherwise the
+dispatcher will deploy with them, but the tests will still try to reach the port-forwarded in-cluster instance.

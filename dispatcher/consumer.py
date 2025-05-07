@@ -14,8 +14,16 @@ from dispatcher.settings import settings
 
 _queue = Queue(
     settings.task_queue_name,
-    Exchange(settings.task_exchange_name, type=settings.task_exchange_type),
+    Exchange(
+        settings.task_exchange_name,
+        type=settings.task_exchange_type,
+        durable=True,
+        auto_delete=False,
+        delivery_mode=2,
+    ),
     settings.task_routing_key,
+    durable=True,
+    auto_delete=False,
 )
 
 

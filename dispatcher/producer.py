@@ -6,12 +6,18 @@ from pydantic import BaseModel
 from dispatcher.settings import settings
 
 _response_exchange = Exchange(
-    settings.response_exchange_name, settings.response_exchange_type
+    settings.response_exchange_name,
+    settings.response_exchange_type,
+    durable=True,
+    auto_delete=False,
+    delivery_mode=2,
 )
 _response_queue = Queue(
     settings.response_queue_name,
     exchange=_response_exchange,
     routing_key=settings.response_routing_key,
+    durable=True,
+    auto_delete=False,
 )
 
 

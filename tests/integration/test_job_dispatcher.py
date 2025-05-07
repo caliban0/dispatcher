@@ -10,20 +10,33 @@ from dispatcher import constants
 from dispatcher.producer import ErrorResponseModel, ResponseModel
 from dispatcher.settings import settings
 
-_task_exchange = Exchange(settings.task_exchange_name, settings.task_exchange_type)
+_task_exchange = Exchange(
+    settings.task_exchange_name,
+    settings.task_exchange_type,
+    durable=True,
+    auto_delete=False,
+    delivery_mode=2,
+)
 _task_queue = Queue(
     settings.task_queue_name,
     exchange=_task_exchange,
     routing_key=settings.task_routing_key,
+    durable=True,
 )
 
 _response_exchange = Exchange(
-    settings.response_exchange_name, settings.response_exchange_type
+    settings.response_exchange_name,
+    settings.response_exchange_type,
+    durable=True,
+    auto_delete=False,
+    delivery_mode=2,
 )
 _response_queue = Queue(
     settings.response_queue_name,
     exchange=_response_exchange,
     routing_key=settings.response_routing_key,
+    durable=True,
+    auto_delete=False,
 )
 
 

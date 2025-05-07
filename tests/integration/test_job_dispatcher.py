@@ -96,7 +96,9 @@ def test_valid_params(
 
 
 def test_image_pull_secret_assigned_to_job_pod(
-    consumer_broker_url: str, k8s_core_api: kubernetes.client.CoreV1Api
+    consumer_broker_url: str,
+    image_pull_secret: str,
+    k8s_core_api: kubernetes.client.CoreV1Api,
 ) -> None:
     def process_return(body: Any, message: Any) -> None:
         message.ack()
@@ -105,7 +107,7 @@ def test_image_pull_secret_assigned_to_job_pod(
         ).items[0]
 
         assert pod.spec is not None and pod.spec.image_pull_secrets is not None
-        assert pod.spec.image_pull_secrets[0].name == "test-image-pull-secret"
+        assert pod.spec.image_pull_secrets[0].name == image_pull_secret
 
     with Connection(consumer_broker_url) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.

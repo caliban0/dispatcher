@@ -1,10 +1,36 @@
-import os
-
 import pytest
 from kubernetes import client, config
 
 from dispatcher import constants
 from dispatcher.settings import settings
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--dispatcher-image",
+        action="store",
+        default="dispatcher:test",
+        help="Dispatcher image to use for tests. Defaults to 'dispatcher:test'.",
+    )
+    parser.addoption(
+        "--in-cluster-broker",
+        action="store",
+        default="false",
+        help="Whether the message broker is in-cluster. Defaults to 'false'.",
+    )
+    parser.addoption(
+        "--service-account-name",
+        action="store",
+        default="dispatcher",
+        help="Service account name to use for the dispatcher deployment. Defaults to 'dispatcher'.",
+    )
+    parser.addoption(
+        "--image-secret-name",
+        action="store",
+        default="test-image-pull-secret",
+        help="Name of the image pull secret that is assigned to job pod internal service account."
+        " Defaults to 'test-image-pull-secret'.",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -37,11 +63,13 @@ def credentials_secret(k8s_core_api: client.CoreV1Api) -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def dispatcher_deployment(
-    k8s_app_api: client.AppsV1Api, credentials_secret: None
+    k8s_app_api: client.AppsV1Api,
+    credentials_secret: None,
+    pytestconfig: pytest.Config,
 ) -> None:
     container = client.V1Container(
         name=constants.APP_NAME,
-        image="dispatcher:test",
+        image=pytestconfig.getoption("--dispatcher-image"),
         image_pull_policy="Never",
         env_from=[
             client.V1EnvFromSource(
@@ -53,7 +81,8 @@ def dispatcher_deployment(
     template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(labels={"app": constants.APP_NAME}),
         spec=client.V1PodSpec(
-            containers=[container], service_account_name=constants.APP_NAME
+            containers=[container],
+            service_account_name=pytestconfig.getoption("--service-account-name"),
         ),
     )
 
@@ -121,8 +150,16 @@ def pv_setup(k8s_core_api: client.CoreV1Api, dispatcher_deployment: None) -> Non
 
 
 @pytest.fixture(scope="session")
-def consumer_broker_url() -> str:
-    url = os.environ.get("PORT_FORWARDED_BROKER")
-    if url in ("yes", "YES", "true", "True", "TRUE"):
+def consumer_broker_url(pytestconfig: pytest.Config) -> str:
+    if pytestconfig.getoption("--in-cluster-broker") == "true":
         return "amqp://guest:guest@localhost:5672//"
-    return str(settings.broker_url)
+    else:
+        return str(settings.broker_url)
+
+
+@pytest.fixture(scope="session")
+def image_pull_secret(pytestconfig: pytest.Config) -> str:
+    val = pytestconfig.getoption("--image-secret-name")
+    if isinstance(val, str):
+        return val
+    raise RuntimeError("--image-secret-name must be a string.")

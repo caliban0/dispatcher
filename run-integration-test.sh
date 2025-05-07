@@ -62,11 +62,14 @@ if [ "$DEPLOY_RABBIT" = "true" ]; then
     kubectl --context "kind-${CLUSTER_NAME}" -n dispatcher port-forward services/rabbitmq 5672:5672 &
     pf_pid=$!
 
-    PORT_FORWARDED_BROKER="true" pdm run pytest tests/integration -vv || true
+    pdm run pytest tests/integration -vv --dispatcher-image="dispatcher:test" \
+        --in-cluster-broker="true" --service-account-name="dispatcher" \
+        --image-secret-name="test-image-pull-secret" || true
     kill "$pf_pid"
 else
     sleep 5
-    pdm run pytest tests/integration -vv || true
+    pdm run pytest tests/integration -vv --dispatcher-image="dispatcher:test" \
+     --service-account-name="dispatcher" --image-secret-name="test-image-pull-secret"|| true
 fi
 
 kubectl --context "kind-${CLUSTER_NAME}" delete -f manifests/namespace.yaml

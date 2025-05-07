@@ -149,6 +149,22 @@ def pv_setup(k8s_core_api: client.CoreV1Api, dispatcher_deployment: None) -> Non
     k8s_core_api.create_namespaced_pod(namespace=constants.NAMESPACE, body=pod)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def image_pull_secret_patch(
+    dispatcher_deployment: None, k8s_core_api: client.CoreV1Api, image_pull_secret: str
+) -> None:
+    sa = k8s_core_api.read_namespaced_service_account(
+        name=settings.internal_service_account_name, namespace=constants.NAMESPACE
+    )
+    sa.image_pull_secrets = [client.V1LocalObjectReference(name=image_pull_secret)]
+
+    k8s_core_api.patch_namespaced_service_account(
+        name=settings.internal_service_account_name,
+        namespace=constants.NAMESPACE,
+        body=sa,
+    )
+
+
 @pytest.fixture(scope="session")
 def consumer_broker_url(pytestconfig: pytest.Config) -> str:
     if pytestconfig.getoption("--in-cluster-broker") == "true":

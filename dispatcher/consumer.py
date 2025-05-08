@@ -55,7 +55,7 @@ class TaskArgModel(BaseModel):
         return v
 
 
-def consumer_step_factory(
+def consumer_step_class(
     _task: celery.app.task.Task[[TaskArgModel], None],
 ) -> type[bootsteps.ConsumerStep]:
     class ConsumerStep(bootsteps.ConsumerStep):

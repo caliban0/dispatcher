@@ -13,7 +13,7 @@ from kubernetes import config as k8s_config
 from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
 from dispatcher import constants, producer
-from dispatcher.consumer import TaskArgModel, consumer_step_factory
+from dispatcher.consumer import TaskArgModel, consumer_step_class
 from dispatcher.settings import settings
 
 logging.basicConfig(
@@ -286,7 +286,7 @@ def dispatch_job(args: TaskArgModel) -> None:
             )
 
 
-app.steps["consumer"].add(consumer_step_factory(dispatch_job))
+app.steps["consumer"].add(consumer_step_class(dispatch_job))
 
 app.conf.update(
     accept_content=["json", "pickle"],

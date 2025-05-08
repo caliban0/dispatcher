@@ -12,7 +12,7 @@ from dispatcher import consumer, producer, tasks
 
 @pytest.fixture()
 def consumer_step() -> Any:
-    return consumer.consumer_step_factory(
+    return consumer.consumer_step_class(
         mock.create_autospec(tasks.dispatch_job, spec_set=True)
     )(mock.MagicMock())
 

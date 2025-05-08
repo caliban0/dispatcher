@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kombu import Connection, Exchange, Queue
+from kombu import Connection, Exchange, Queue, pools
 from pydantic import BaseModel
 
 from dispatcher.settings import settings
@@ -19,6 +19,9 @@ _response_queue = Queue(
     durable=True,
     auto_delete=False,
 )
+
+pools.set_limit(16)  # type: ignore[attr-defined]
+connection = Connection(str(settings.broker_url), ssl=settings.ssl)
 
 
 class ResponseModel(BaseModel):
@@ -55,9 +58,7 @@ class ErrorResponseModel(BaseModel):
 
 
 def produce_response_msg(resp: ResponseModel | ErrorResponseModel) -> None:
-    with Connection(str(settings.broker_url), ssl=settings.ssl) as conn:
-        # Connection does have the Producer attribute, a celery type stub issue.
-        producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
+    with pools.producers[connection].acquire(block=True) as producer:  # type: ignore[attr-defined]
         producer.publish(
             resp.model_dump(),
             exchange=_response_exchange,

@@ -99,7 +99,7 @@ def test_valid_params(
             task_resp_msg
         )
 
-    with Connection(consumer_broker_url) as conn:
+    with Connection(consumer_broker_url, ssl=settings.ssl) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
         publish_msg(producer, task_req_msg)
@@ -122,7 +122,7 @@ def test_image_pull_secret_assigned_to_job_pod(
         assert pod.spec is not None and pod.spec.image_pull_secrets is not None
         assert pod.spec.image_pull_secrets[0].name == image_pull_secret
 
-    with Connection(consumer_broker_url) as conn:
+    with Connection(consumer_broker_url, ssl=settings.ssl) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
         publish_msg(
@@ -207,7 +207,7 @@ def test_invalid_params(
             body
         ) == ErrorResponseModel.model_validate(task_resp_msg)
 
-    with Connection(consumer_broker_url) as conn:
+    with Connection(consumer_broker_url, ssl=settings.ssl) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
         if task_req_msg == "unserializable":
             producer = conn.Producer(serializer="pickle")  # type: ignore[attr-defined]
@@ -237,7 +237,7 @@ def test_dispatcher_error_when_duplicate_job_names(consumer_broker_url: str) -> 
                 }
             )
 
-    with Connection(consumer_broker_url) as conn:
+    with Connection(consumer_broker_url, ssl=settings.ssl) as conn:
         # Ignore mypy error, the stub doesn't properly cover kombu.Connection.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
 

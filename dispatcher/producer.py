@@ -55,7 +55,7 @@ class ErrorResponseModel(BaseModel):
 
 
 def produce_response_msg(resp: ResponseModel | ErrorResponseModel) -> None:
-    with Connection(str(settings.broker_url)) as conn:
+    with Connection(str(settings.broker_url), ssl=settings.ssl) as conn:
         # Connection does have the Producer attribute, a celery type stub issue.
         producer = conn.Producer(serializer="json")  # type: ignore[attr-defined]
         producer.publish(

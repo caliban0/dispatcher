@@ -27,6 +27,7 @@ class Settings(BaseSettings):
         amqp_password: AMQP broker URL password.
         amqp_host: AMQP broker URL host.
         amqp_port: AMQP broker URL port.
+        ssl: Whether to use SSL for the AMQP connection.
         amqp_vhost: AMQP broker vhost.
         task_queue_name: The queue for the consumer boot-step.
         task_exchange_name: The exchange for the consumer boot-step.
@@ -55,6 +56,12 @@ class Settings(BaseSettings):
     @field_serializer("amqp_port")
     def serialize_amqp_port(self, amqp_port: int) -> str:
         return str(amqp_port)
+
+    ssl: bool = False
+
+    @field_serializer("ssl")
+    def serialize_ssl(self, ssl: bool) -> str:
+        return str(ssl)
 
     amqp_vhost: str = "/"
 

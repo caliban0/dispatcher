@@ -288,4 +288,8 @@ def dispatch_job(args: TaskArgModel) -> None:
 
 app.steps["consumer"].add(consumer_step_factory(dispatch_job))
 
-app.conf.update(accept_content=["json", "pickle"], task_serializer="pickle")
+app.conf.update(
+    accept_content=["json", "pickle"],
+    task_serializer="pickle",
+    broker_use_ssl=settings.ssl,
+)

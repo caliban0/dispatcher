@@ -95,7 +95,7 @@ def test_valid_params(
 ) -> None:
     def process_return(body: Any, message: Any) -> None:
         message.ack()
-        assert ResponseModel.model_validate_json(body) == ResponseModel.model_validate(
+        assert ResponseModel.model_validate(body) == ResponseModel.model_validate(
             task_resp_msg
         )
 
@@ -203,7 +203,7 @@ def test_invalid_params(
 ) -> None:
     def process_return(body: Any, message: Any) -> None:
         message.ack()
-        assert ErrorResponseModel.model_validate_json(
+        assert ErrorResponseModel.model_validate(
             body
         ) == ErrorResponseModel.model_validate(task_resp_msg)
 
@@ -226,7 +226,7 @@ def test_dispatcher_error_when_duplicate_job_names(consumer_broker_url: str) -> 
     def process_return(body: Any, message: Any) -> None:
         message.ack()
         if duplicate:
-            assert ErrorResponseModel.model_validate_json(
+            assert ErrorResponseModel.model_validate(
                 body
             ) == ErrorResponseModel.model_validate(
                 {

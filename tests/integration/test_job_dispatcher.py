@@ -22,6 +22,7 @@ _task_queue = Queue(
     exchange=_task_exchange,
     routing_key=settings.task_routing_key,
     durable=True,
+    auto_delete=False,
 )
 
 _response_exchange = Exchange(
@@ -47,7 +48,7 @@ def publish_msg(
         msg,
         exchange=_task_exchange,
         routing_key=settings.task_routing_key,
-        declare=[_task_queue],
+        declare=[_task_queue, _task_exchange],
         retry=False,
     )
 

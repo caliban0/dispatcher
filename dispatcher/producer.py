@@ -62,7 +62,7 @@ def produce_response_msg(resp: ResponseModel | ErrorResponseModel) -> None:
             resp.model_dump(),
             exchange=_response_exchange,
             routing_key=settings.response_routing_key,
-            declare=[_response_queue],
+            declare=[_response_queue, _response_exchange],
             retry=True,
             retry_policy={
                 "interval_start": 0,

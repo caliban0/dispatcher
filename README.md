@@ -67,9 +67,12 @@ Here are the configuration options that can be passed as container env vars:
 | RESPONSE_QUEUE_NAME           | The queue to which response messages will be sent                                                                                           | responses                             |
 | RESPONSE_EXCHANGE_NAME        | The exchange to which response messages will be sent                                                                                        | responses                             |
 | RESPONSE_EXCHANGE_TYPE        | The type of the response exchange                                                                                                           | direct                                |
-| RESPONSE_ROUTING_KEY          | Routing key for the response queue                                                                                                          | response                              | | worker-pv-volume                      |
+| RESPONSE_ROUTING_KEY          | Routing key for the response queue                                                                                                          | response                              |
 | PVC_NAME                      | Persistent Volume Claim name                                                                                                                | worker-pv-claim                       |
 | INTERNAL_SERVICE_ACCOUNT_NAME | The name of the service account that job pods will use (`imagePullSecrets` for job pod container images should be assigned to this account) | job-internal                          |
+| WORKER_CONCURRENCY            | The number of concurrent worker green threads                                                                                               | 250                                   |
+| BROKER_POOL_LIMIT             | The maximum number of connections that can be open in the connection pool                                                                   | 25                                    |
+| WORKER_PREFETCH_MULTIPLIER    | How many messages to prefetch at a time                                                                                                     | 1                                     |
 | K8S_IN_CLUSTER                | Whether the job dispatcher is running inside a kubernetes cluster                                                                           | true                                  |
 
 ## Usage

@@ -3,12 +3,12 @@ name = "dispatcher"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
-    {name = "Marius Žalinauskas", email = "marius.zalinauskas@gmail.com"},
+    { name = "Marius Žalinauskas", email = "marius.zalinauskas@gmail.com" },
 ]
 dependencies = ["celery>=5.5.0", "kubernetes>=32.0.1", "pydantic>=2.11.1", "pydantic-settings>=2.8.1", "gevent>=24.11.1"]
 requires-python = ">=3.12"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [project.scripts]
 dispatcher = "dispatcher.main:main"
@@ -58,5 +58,5 @@ distribution = false
 lint = "ruff check ."
 type-check = "mypy . --strict"
 test-unit.cmd = "pytest tests/unit"
-prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info --pool=gevent --concurrency=250"
-prod.env = {K8S_IN_CLUSTER = "true"}
+prod.cmd = "celery -A dispatcher.tasks worker --loglevel=info --pool=gevent"
+prod.env = { K8S_IN_CLUSTER = "true" }

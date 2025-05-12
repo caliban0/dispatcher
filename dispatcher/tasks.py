@@ -292,6 +292,7 @@ app.conf.update(
     accept_content=["json", "pickle"],
     task_serializer="pickle",
     broker_use_ssl=settings.ssl,
-    broker_pool_limit=constants.BROKER_POOL_LIMIT,
-    worker_prefetch_multiplier=constants.WORKER_PREFETCH_MULTIPLIER,
+    broker_pool_limit=settings.broker_pool_limit,
+    worker_prefetch_multiplier=settings.worker_prefetch_multiplier,
+    worker_concurrency=settings.worker_concurrency,
 )

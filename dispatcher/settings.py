@@ -39,6 +39,10 @@ class Settings(BaseSettings):
         response_routing_key: The routing key for the task response logs.
         pvc_name: The name of the persistent volume claim.
         internal_service_account_name: The name of the service account that job pods will use.
+        worker_concurrency: The number of concurrent worker green threads.
+        broker_pool_limit: The maximum number of connections that can be open in the connection pool.
+        worker_prefetch_multiplier: How many messages to prefetch at a time
+         multiplied by the number of concurrent processes.
         k8s_in_cluster: Whether the application is in a Kubernetes cluster.
          Accepted values are "true" or "false".
 
@@ -87,6 +91,26 @@ class Settings(BaseSettings):
     response_routing_key: str = "response"
     pvc_name: str = "worker-pv-claim"
     internal_service_account_name: str = "job-internal"
+    worker_concurrency: int = 250
+
+    @field_serializer("worker_concurrency")
+    def serialize_worker_concurrency(self, worker_concurrency: int) -> str:
+        return str(worker_concurrency)
+
+    broker_pool_limit: int = 25
+
+    @field_serializer("broker_pool_limit")
+    def serialize_broker_pool_limit(self, broker_pool_limit: int) -> str:
+        return str(broker_pool_limit)
+
+    worker_prefetch_multiplier: int = 1
+
+    @field_serializer("worker_prefetch_multiplier")
+    def serialize_worker_prefetch_multiplier(
+        self, worker_prefetch_multiplier: int
+    ) -> str:
+        return str(worker_prefetch_multiplier)
+
     k8s_in_cluster: Literal["true", "false"] = "true"
 
 

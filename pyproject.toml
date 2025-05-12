@@ -21,6 +21,7 @@ dev = [
     "celery-types>=0.23.0",
     "pytest>=8.3.5",
     "pre-commit>=4.2.0",
+    "locust>=2.33.1",
 ]
 
 [tool.pytest.ini_options]

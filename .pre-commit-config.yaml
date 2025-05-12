@@ -40,3 +40,4 @@ repos:
           - celery == 5.5.0
           - kubernetes == 32.0.1
           - celery-types == 0.23.0
+          - locust == 2.37.1

@@ -1,13 +1,26 @@
-name: Unit test
+name: test
+permissions:
+  contents: read
+  pull-requests: write
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  TEST_TAG: coherence0507/dispatcher:test
 
 jobs:
-  test:
+  Lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.1
+  Unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,16 +29,28 @@ jobs:
         uses: pdm-project/setup-pdm@v4
         with:
           python-version: 3.12
-          cache:  true
+          cache: true
 
       - name: Install dependencies
         run: pdm install -G dev
 
-      - name: Lint
-        run: pdm run lint
-
-      - name: Type check
-        run: pdm run type-check
-
       - name: Run unit tests
         run: pdm run test-unit
+
+  Integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: 'test-cluster'
+
+      - uses: actions/checkout@v4
+      - uses: pdm-project/setup-pdm@v4
+        with:
+          python-version: 3.12
+          cache: true
+
+      - run: pdm install -G dev
+
+      - run: bash run-integration-test.sh --deploy-rabbit=true

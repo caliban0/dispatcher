@@ -3,6 +3,7 @@ from __future__ import annotations
 from kombu import Connection, Exchange, Queue, pools
 from pydantic import BaseModel
 
+from dispatcher import constants
 from dispatcher.settings import settings
 
 _response_exchange = Exchange(
@@ -20,7 +21,7 @@ _response_queue = Queue(
     auto_delete=False,
 )
 
-pools.set_limit(16)  # type: ignore[attr-defined]
+pools.set_limit(constants.BROKER_POOL_LIMIT)  # type: ignore[attr-defined]
 connection = Connection(str(settings.broker_url), ssl=settings.ssl)
 
 

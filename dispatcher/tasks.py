@@ -292,4 +292,5 @@ app.conf.update(
     accept_content=["json", "pickle"],
     task_serializer="pickle",
     broker_use_ssl=settings.ssl,
+    broker_pool_limit=constants.BROKER_POOL_LIMIT,
 )

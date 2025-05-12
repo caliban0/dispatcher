@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:bacbff3f7bde89c51439189623f13c1bfe2a161f40c3843adb019c0b175074a9"
+content_hash = "sha256:898a0defaad3649896b11dc91992b6648ce233c59fac52d810ac45b467aa3151"
 
 [[metadata.targets]]
 requires_python = ">=3.12"
@@ -173,7 +173,7 @@ name = "cffi"
 version = "1.17.1"
 requires_python = ">=3.8"
 summary = "Foreign Function Interface for Python calling C code."
-groups = ["dev"]
+groups = ["default", "dev"]
 marker = "platform_python_implementation == \"CPython\" and sys_platform == \"win32\" or implementation_name == \"pypy\""
 dependencies = [
     "pycparser",
@@ -417,7 +417,7 @@ name = "gevent"
 version = "24.11.1"
 requires_python = ">=3.9"
 summary = "Coroutine-based network library"
-groups = ["dev"]
+groups = ["default", "dev"]
 dependencies = [
     "cffi>=1.17.1; platform_python_implementation == \"CPython\" and sys_platform == \"win32\"",
     "greenlet>=3.1.1; platform_python_implementation == \"CPython\"",
@@ -507,7 +507,7 @@ name = "greenlet"
 version = "3.2.1"
 requires_python = ">=3.9"
 summary = "Lightweight in-process concurrent programming"
-groups = ["dev"]
+groups = ["default", "dev"]
 marker = "platform_python_implementation == \"CPython\""
 files = [
     {file = "greenlet-3.2.1-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:0ba2811509a30e5f943be048895a983a8daf0b9aa0ac0ead526dfb5d987d80ea"},
@@ -953,7 +953,7 @@ name = "pycparser"
 version = "2.22"
 requires_python = ">=3.8"
 summary = "C parser in Python"
-groups = ["dev"]
+groups = ["default", "dev"]
 marker = "platform_python_implementation == \"CPython\" and sys_platform == \"win32\" or implementation_name == \"pypy\""
 files = [
     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
@@ -1291,7 +1291,7 @@ name = "setuptools"
 version = "80.3.1"
 requires_python = ">=3.9"
 summary = "Easily download, build, install, upgrade, and uninstall Python packages"
-groups = ["dev"]
+groups = ["default", "dev"]
 files = [
     {file = "setuptools-80.3.1-py3-none-any.whl", hash = "sha256:ea8e00d7992054c4c592aeb892f6ad51fe1b4d90cc6947cc45c45717c40ec537"},
     {file = "setuptools-80.3.1.tar.gz", hash = "sha256:31e2c58dbb67c99c289f51c16d899afedae292b978f8051efaf6262d8212f927"},
@@ -1455,7 +1455,7 @@ name = "zope-event"
 version = "5.0"
 requires_python = ">=3.7"
 summary = "Very basic event publishing system"
-groups = ["dev"]
+groups = ["default", "dev"]
 dependencies = [
     "setuptools",
 ]
@@ -1469,7 +1469,7 @@ name = "zope-interface"
 version = "7.2"
 requires_python = ">=3.8"
 summary = "Interfaces for Python"
-groups = ["dev"]
+groups = ["default", "dev"]
 dependencies = [
     "setuptools",
 ]

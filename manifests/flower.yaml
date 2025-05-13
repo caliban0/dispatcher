@@ -5,9 +5,9 @@ metadata:
   namespace: dispatcher
 spec:
   ports:
-  - name: flower
-    port: 5555
-    targetPort: 5555
+    - name: flower
+      port: 5555
+      targetPort: 5555
   selector:
     app: flower
 
@@ -28,8 +28,8 @@ spec:
         app: flower
     spec:
       containers:
-      - name: flower
-        image: mher/flower:2.0.1
-        ports:
-        - containerPort: 5555
-        command: ["celery", "--broker=pyamqp://guest@rabbitmq.dispatcher.svc.cluster.local//", "flower"]
+        - name: flower
+          image: mher/flower:2.0.1
+          ports:
+            - containerPort: 5555
+          command: [ "celery", "--broker=pyamqp://guest@rabbitmq.dispatcher.svc.cluster.local//", "flower" ]

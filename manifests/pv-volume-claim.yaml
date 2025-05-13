@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-    name: worker-pv-claim
-    namespace: dispatcher
+  name: worker-pv-claim
+  namespace: dispatcher
 spec:
-    storageClassName: standard
-    accessModes:
-        - ReadWriteOnce
-    resources:
-        requests:
-            storage: 100Mi
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi

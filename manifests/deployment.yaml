@@ -15,11 +15,11 @@ spec:
     spec:
       serviceAccountName: dispatcher
       containers:
-      - name: dispatcher
-        image: zalmarge/dispatcher:latest
-        imagePullPolicy: Always
-        env:
-        - name: K8S_IN_CLUSTER
-          value: "true"
-        # - name: C_FORCE_ROOT
-        #   value: "true"
+        - name: dispatcher
+          image: zalmarge/dispatcher:latest
+          imagePullPolicy: Always
+          env:
+            - name: K8S_IN_CLUSTER
+              value: "true"
+          # - name: C_FORCE_ROOT
+          #   value: "true"

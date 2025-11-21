@@ -17,13 +17,13 @@ jobs:
   Lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
   Unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup PDM
         uses: pdm-project/setup-pdm@v4
@@ -45,7 +45,7 @@ jobs:
         with:
           cluster_name: 'test-cluster'
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pdm-project/setup-pdm@v4
         with:
           python-version: 3.12
